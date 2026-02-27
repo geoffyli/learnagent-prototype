@@ -8,7 +8,7 @@ export type MessageRole = 'assistant' | 'user' | 'system';
 
 import type { ContentBlock } from './content-blocks';
 
-export type MainSessionPhase = 'planning' | 'learning';
+export type MainSessionPhase = 'setup' | 'planning' | 'learning';
 
 export type SkillNodeStatus = 'locked' | 'available' | 'in-progress' | 'completed';
 

@@ -26,24 +26,14 @@ interface SessionChatProps {
 }
 
 interface SelectionPopover {
-  sessionId: string;
   text: string;
   x: number;
   y: number;
 }
 
-interface SelectionTextState {
-  sessionId: string;
-  value: string;
-}
-
 function getQuickActions(kind: SessionNode['kind'], mainPhase: MainSessionPhase): string[] {
   if (kind === 'main' && mainPhase === 'planning') {
-    return [
-      'Goal: be able to build production React apps',
-      'Baseline: I know JavaScript but never used Hooks',
-      'Timeline: comfortable in 4 weeks',
-    ];
+    return [];
   }
 
   if (kind === 'main') {
@@ -100,7 +90,7 @@ export default function SessionChat({
   const reducedMotion = useReducedMotion() ?? false;
   const [inputsBySession, setInputsBySession] = useState<Record<string, string>>({});
   const [selectionPopover, setSelectionPopover] = useState<SelectionPopover | null>(null);
-  const [selectionText, setSelectionText] = useState<SelectionTextState | null>(null);
+  const [selectionText, setSelectionText] = useState('');
   const scrollerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const input = inputsBySession[activeSession.id] ?? '';
@@ -151,11 +141,6 @@ export default function SessionChat({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
   }, [activeSession.messages, reducedMotion]);
-
-  useEffect(() => {
-    setSelectionPopover(null);
-    setSelectionText('');
-  }, [activeSession.id]);
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -472,30 +457,32 @@ export default function SessionChat({
       )}
 
       <div className="border-t border-white/50 bg-white/55 px-4 py-4">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={quickActionKey}
-            className="mb-3 flex flex-wrap gap-2"
-            variants={staggerContainer(reducedMotion, 0.04)}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, y: reducedMotion ? 0 : -4, transition: tweenFor(reducedMotion, MOTION_DURATION.fast, 'exit') }}
-          >
-            {quickActions.map((action) => (
-              <motion.button
-                key={action}
-                type="button"
-                onClick={() => submitInput(action)}
-                variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
-                whileHover={reducedMotion ? undefined : { y: -1 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 transition hover:border-teal-300 hover:text-teal-700"
-              >
-                {action}
-              </motion.button>
-            ))}
-          </motion.div>
-        </AnimatePresence>
+        {quickActions.length > 0 && (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={quickActionKey}
+              className="mb-3 flex flex-wrap gap-2"
+              variants={staggerContainer(reducedMotion, 0.04)}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -4, transition: tweenFor(reducedMotion, MOTION_DURATION.fast, 'exit') }}
+            >
+              {quickActions.map((action) => (
+                <motion.button
+                  key={action}
+                  type="button"
+                  onClick={() => submitInput(action)}
+                  variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
+                  whileHover={reducedMotion ? undefined : { y: -1 }}
+                  whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 transition hover:border-teal-300 hover:text-teal-700"
+                >
+                  {action}
+                </motion.button>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">

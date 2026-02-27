@@ -1,9 +1,39 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Check, ChevronLeft, ChevronRight, Copy, RotateCcw } from 'lucide-react';
 import type { CodeBlock, ComparisonTableBlock, ContentBlock, FlashcardDeckBlock } from '../types/content-blocks';
 import { MOTION_DURATION, springFor, tweenFor } from '../motion/tokens';
 import { fadeSlideY, staggerContainer } from '../motion/variants';
+
+type LegacyFlashcardsBlock = {
+  type: 'flashcards';
+  topic?: string;
+  cards?: Array<{ id: string; question: string; answer: string }>;
+};
+
+type RenderableBlock = ContentBlock | FlashcardDeckBlock;
+
+interface SelectionPopover {
+  text: string;
+  x: number;
+  y: number;
+}
+
+function normalizeBlock(block: ContentBlock | LegacyFlashcardsBlock): RenderableBlock | null {
+  if (block.type === 'code' || block.type === 'comparison-table' || block.type === 'flashcard-deck') {
+    return block;
+  }
+
+  if (block.type === 'flashcards' && Array.isArray(block.cards) && block.cards.length > 0) {
+    return {
+      type: 'flashcard-deck',
+      topic: block.topic ?? 'Practice',
+      cards: block.cards,
+    };
+  }
+
+  return null;
+}
 
 function CodeBlockView({ block }: { block: CodeBlock }) {
   const reducedMotion = useReducedMotion() ?? false;
@@ -284,25 +314,141 @@ function blockKey(block: ContentBlock, index: number): string {
   return `flashcards-${block.topic}-${block.cards.length}`;
 }
 
-export default function RichContentPanel({ blocks }: { blocks: ContentBlock[] }) {
+export default function RichContentPanel({
+  blocks,
+  onCreateBranch,
+}: {
+  blocks: ContentBlock[];
+  onCreateBranch?: (kind: 'ask' | 'explain', selectedText: string) => void;
+}) {
   const reducedMotion = useReducedMotion() ?? false;
-  const sequenceKey = useMemo(
-    () => blocks.map((block, i) => blockKey(block, i)).join('|') || 'empty',
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [selectionPopover, setSelectionPopover] = useState<SelectionPopover | null>(null);
+  const [selectionText, setSelectionText] = useState('');
+
+  const normalizedBlocks = useMemo(
+    () => blocks
+      .map((block) => normalizeBlock(block as ContentBlock | LegacyFlashcardsBlock))
+      .filter((block): block is RenderableBlock => block !== null),
     [blocks],
   );
 
+  const sequenceKey = useMemo(
+    () => normalizedBlocks.map((block, i) => blockKey(block, i)).join('|') || 'empty',
+    [normalizedBlocks],
+  );
+
+  const getSelectionState = useCallback((): SelectionPopover | null => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      return null;
+    }
+
+    const text = selection.toString().replace(/\s+/g, ' ').trim();
+    if (text.length < 3) {
+      return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    const node = range.commonAncestorContainer;
+    const element =
+      node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element);
+
+    if (!element) {
+      return null;
+    }
+
+    const selectableRegion = element.closest('[data-rich-selectable="true"]');
+    const scroller = scrollerRef.current;
+    if (!selectableRegion || !scroller || !scroller.contains(selectableRegion)) {
+      return null;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const containerRect = scroller.getBoundingClientRect();
+
+    return {
+      text,
+      x: rect.left - containerRect.left + rect.width / 2 + scroller.scrollLeft,
+      y: rect.top - containerRect.top + scroller.scrollTop - 10,
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const current = getSelectionState();
+      if (!current) {
+        setSelectionText('');
+        setSelectionPopover(null);
+        return;
+      }
+      setSelectionText(current.text);
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [getSelectionState]);
+
+  const clearNativeSelection = () => {
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+    }
+    setSelectionPopover(null);
+    setSelectionText('');
+  };
+
+  const handleMouseUpSelection = () => {
+    const current = getSelectionState();
+    if (!current) {
+      setSelectionPopover(null);
+      setSelectionText('');
+      return;
+    }
+    setSelectionText(current.text);
+    setSelectionPopover(current);
+  };
+
+  const handleBranch = (kind: 'ask' | 'explain', text: string) => {
+    if (!onCreateBranch) {
+      return;
+    }
+    onCreateBranch(kind, text);
+    clearNativeSelection();
+  };
+
+  if (normalizedBlocks.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center">
+          <p className="text-sm font-medium text-slate-700">No content to display yet.</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Ask for an example, comparison, or quiz to generate rich content.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div
+      ref={scrollerRef}
+      onMouseUp={handleMouseUpSelection}
+      className="relative h-full overflow-y-auto p-4"
+    >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={sequenceKey}
           className="space-y-4"
+          data-rich-selectable="true"
           variants={staggerContainer(reducedMotion, 0.08)}
           initial="hidden"
           animate="visible"
           exit={{ opacity: 0, y: reducedMotion ? 0 : -8, transition: tweenFor(reducedMotion, MOTION_DURATION.fast, 'exit') }}
         >
-          {blocks.map((block, i) => {
+          {normalizedBlocks.map((block, i) => {
             const key = blockKey(block, i);
             if (block.type === 'code') {
               return (
@@ -328,6 +474,71 @@ export default function RichContentPanel({ blocks }: { blocks: ContentBlock[] })
             return null;
           })}
         </motion.div>
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectionPopover && onCreateBranch && (
+          <motion.div
+            className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+            style={{ left: selectionPopover.x, top: selectionPopover.y }}
+            initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.96, y: reducedMotion ? 0 : 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.96, y: reducedMotion ? 0 : 4 }}
+            transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+          >
+            <p className="mb-2 max-w-[220px] text-[11px] text-slate-500">
+              Branch from selected content:
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleBranch('ask', selectionPopover.text)}
+                className="rounded-lg bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:bg-cyan-100"
+              >
+                Ask
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBranch('explain', selectionPopover.text)}
+                className="rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-100"
+              >
+                Explain
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!selectionPopover && selectionText && onCreateBranch && (
+          <motion.div
+            className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur-sm"
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+          >
+            <p className="mb-2 max-w-[250px] text-[11px] text-slate-500">
+              Branch from selected content:
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleBranch('ask', selectionText)}
+                className="rounded-lg bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:bg-cyan-100"
+              >
+                Ask
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBranch('explain', selectionText)}
+                className="rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-100"
+              >
+                Explain
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

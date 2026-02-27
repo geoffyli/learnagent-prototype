@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { SetStateAction, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Sparkles, TreePine } from 'lucide-react';
+import { ArrowLeft, Sparkles, TreePine } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
+import WelcomePage from './components/WelcomePage';
 import { MOTION_DURATION, springFor, tweenFor } from './motion/tokens';
 import { fadeSlideY, staggerContainer } from './motion/variants';
 import {
@@ -37,6 +38,10 @@ import {
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
 
 const MAIN_SESSION_ID = 'session-main';
+const EMPTY_RICH_BLOCKS: ContentBlock[] = [];
+const EMPTY_RICH_BLOCKS_BY_SESSION: Record<string, ContentBlock[]> = {};
+const EMPTY_NODES: SessionNode[] = [];
+const EMPTY_SESSIONS: Record<string, AnySessionRecord> = {};
 
 
 const REACT_HOOKS_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
@@ -98,6 +103,16 @@ const REACT_HOOKS_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
 
 function createTimestamp(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function planningSeedMessage(): ChatMessage {
+  return {
+    id: 'seed-1',
+    role: 'assistant',
+    content:
+      "Let me build your personalized React Hooks learning plan. I'll work through 5 planning phases — you'll see my reasoning here as I go.",
+    timestamp: '09:00',
+  };
 }
 
 const PLANNING_STEP_USER_MESSAGES: Record<string, string> = {
@@ -216,49 +231,162 @@ function assistantReplyFor(
   return { text: 'I can answer directly, or you can highlight any phrase in my response to branch into Ask/Explain sessions.' };
 }
 
+interface WorkspaceState {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  leftTab: 'skill-tree' | 'content';
+  tabDirection: number;
+  richBlocksBySession: Record<string, ContentBlock[]>;
+  nodes: SessionNode[];
+  sessions: Record<string, AnySessionRecord>;
+  activeSessionId: string;
+}
+
+function createMainSessionRecord(): MainSessionRecord {
+  return {
+    id: MAIN_SESSION_ID,
+    kind: 'main',
+    phase: 'setup',
+    skillNodes: [],
+    promptProfile: 'main-orchestrator',
+    contextNote: 'Main session coordinates user intent and delegates scoped sub-agents when needed.',
+    planning: null,
+    messages: [],
+  };
+}
+
+function createWorkspace(id: string, title: string): WorkspaceState {
+  const now = Date.now();
+  return {
+    id,
+    title,
+    createdAt: now,
+    updatedAt: now,
+    leftTab: 'skill-tree',
+    tabDirection: -1,
+    richBlocksBySession: {
+      [MAIN_SESSION_ID]: [],
+    },
+    nodes: [
+      {
+        id: MAIN_SESSION_ID,
+        title: 'React Hooks • Learning Session',
+        kind: 'main',
+        status: 'active',
+        parentId: null,
+        depth: 0,
+        createdAt: 0,
+      },
+    ],
+    sessions: {
+      [MAIN_SESSION_ID]: createMainSessionRecord(),
+    },
+    activeSessionId: MAIN_SESSION_ID,
+  };
+}
+
+function resolveState<T>(current: T, next: SetStateAction<T>): T {
+  return typeof next === 'function' ? (next as (value: T) => T)(current) : next;
+}
+
 function App() {
   const reducedMotion = useReducedMotion() ?? false;
   const idCounter = useRef(1);
+  const workspaceCounter = useRef(2);
   const nextId = (prefix: string) => `${prefix}-${idCounter.current++}`;
+  const nextWorkspaceId = () => `workspace-${workspaceCounter.current++}`;
 
-  const [leftTab, setLeftTab] = useState<'skill-tree' | 'content'>('skill-tree');
-  const [tabDirection, setTabDirection] = useState(-1);
-  const [richBlocks, setRichBlocks] = useState<ContentBlock[]>([]);
-
-  const [nodes, setNodes] = useState<SessionNode[]>([
-    {
-      id: MAIN_SESSION_ID,
-      title: 'React Hooks • Learning Session',
-      kind: 'main',
-      status: 'active',
-      parentId: null,
-      depth: 0,
-      createdAt: 0,
-    },
+  const [workspaces, setWorkspaces] = useState<WorkspaceState[]>(() => [
+    createWorkspace('workspace-1', 'React Hooks Starter Session'),
   ]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
-  const [sessions, setSessions] = useState<Record<string, AnySessionRecord>>({
-    [MAIN_SESSION_ID]: {
-      id: MAIN_SESSION_ID,
-      kind: 'main',
-      phase: 'planning',
-      skillNodes: [],
-      promptProfile: 'main-orchestrator',
-      contextNote: 'Main session coordinates user intent and delegates scoped sub-agents when needed.',
-      planning: buildPlanningState(),
-      messages: [
-        {
-          id: 'seed-1',
-          role: 'assistant',
-          content:
-            "Let me build your personalized React Hooks learning plan. I'll work through 5 planning phases — you'll see my reasoning here as I go.",
-          timestamp: '09:00',
-        },
-      ],
-    } satisfies MainSessionRecord,
-  });
+  const activeWorkspace = useMemo(() => {
+    if (!activeWorkspaceId) {
+      return null;
+    }
+    return workspaces.find((workspace) => workspace.id === activeWorkspaceId) ?? null;
+  }, [activeWorkspaceId, workspaces]);
 
-  const [activeSessionId, setActiveSessionId] = useState<string>(MAIN_SESSION_ID);
+  const workspaceState = activeWorkspace ?? workspaces[0] ?? null;
+
+  const updateActiveWorkspace = (updater: (workspace: WorkspaceState) => WorkspaceState) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
+
+    setWorkspaces((prev) =>
+      prev.map((workspace) => {
+        if (workspace.id !== activeWorkspaceId) {
+          return workspace;
+        }
+
+        const nextWorkspace = updater(workspace);
+        return {
+          ...nextWorkspace,
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  };
+
+  const setLeftTab = (next: SetStateAction<'skill-tree' | 'content'>) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      leftTab: resolveState(workspace.leftTab, next),
+    }));
+  };
+
+  const setTabDirection = (next: SetStateAction<number>) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      tabDirection: resolveState(workspace.tabDirection, next),
+    }));
+  };
+
+  const setSessionRichBlocks = (
+    sessionId: string,
+    next: SetStateAction<ContentBlock[]>,
+  ) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      richBlocksBySession: {
+        ...workspace.richBlocksBySession,
+        [sessionId]: resolveState(workspace.richBlocksBySession[sessionId] ?? EMPTY_RICH_BLOCKS, next),
+      },
+    }));
+  };
+
+  const setNodes = (next: SetStateAction<SessionNode[]>) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      nodes: resolveState(workspace.nodes, next),
+    }));
+  };
+
+  const setSessions = (next: SetStateAction<Record<string, AnySessionRecord>>) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      sessions: resolveState(workspace.sessions, next),
+    }));
+  };
+
+  const setActiveSessionId = (next: SetStateAction<string>) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      activeSessionId: resolveState(workspace.activeSessionId, next),
+    }));
+  };
+
+  const leftTab = workspaceState?.leftTab ?? 'skill-tree';
+  const tabDirection = workspaceState?.tabDirection ?? -1;
+  const richBlocksBySession = workspaceState?.richBlocksBySession ?? EMPTY_RICH_BLOCKS_BY_SESSION;
+  const nodes = workspaceState?.nodes ?? EMPTY_NODES;
+  const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
+  const activeSessionId = workspaceState?.activeSessionId ?? MAIN_SESSION_ID;
+  const activeRichBlocks = richBlocksBySession[activeSessionId] ?? EMPTY_RICH_BLOCKS;
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, SessionNode>();
@@ -286,9 +414,66 @@ function App() {
 
     return path;
   }, [activeNode, nodeMap]);
-  const activePathLabel = activePath.map((node) => node.title).join(' / ');
+  const activePathLabel = activePath.map((node) => node.title).join(' / ') || 'No session selected';
   const pageVariants = staggerContainer(reducedMotion, 0.09, 0.03);
   const pageItemVariants = fadeSlideY(reducedMotion, 10, MOTION_DURATION.slow);
+
+  const workspaceSummaries = useMemo(() => {
+    return workspaces.map((workspace) => {
+      return {
+        id: workspace.id,
+        title: workspace.title,
+        lastVisitedAt: workspace.updatedAt,
+      };
+    });
+  }, [workspaces]);
+
+  const handleCreateWorkspace = (title?: string) => {
+    const workspaceId = nextWorkspaceId();
+    const fallbackTitle = `React Hooks Session ${workspaceCounter.current - 1}`;
+    const nextWorkspace = createWorkspace(workspaceId, title?.trim() || fallbackTitle);
+
+    setWorkspaces((prev) => [nextWorkspace, ...prev]);
+    setActiveWorkspaceId(workspaceId);
+  };
+
+  const handleOpenWorkspace = (workspaceId: string) => {
+    setWorkspaces((prev) =>
+      prev.map((workspace) =>
+        workspace.id === workspaceId
+          ? { ...workspace, updatedAt: Date.now() }
+          : workspace,
+      ),
+    );
+    setActiveWorkspaceId(workspaceId);
+  };
+
+  const handleBackToWelcome = () => {
+    setActiveWorkspaceId(null);
+  };
+
+  const handleStartPlanning = () => {
+    if (!activeWorkspaceId) {
+      return;
+    }
+
+    setSessions((prev) => {
+      const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!mainSession || mainSession.phase !== 'setup') {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [MAIN_SESSION_ID]: {
+          ...mainSession,
+          phase: 'planning',
+          planning: buildPlanningState(),
+          messages: [planningSeedMessage()],
+        },
+      };
+    });
+  };
 
   const changeLeftTab = (nextTab: 'skill-tree' | 'content') => {
     setTabDirection(nextTab === 'content' ? 1 : -1);
@@ -296,6 +481,9 @@ function App() {
   };
 
   const activateSession = (sessionId: string) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
     setActiveSessionId(sessionId);
     setNodes((prev) => applyActiveSession(prev, sessionId));
   };
@@ -304,6 +492,9 @@ function App() {
     sessionId: string,
     message: Omit<ChatMessage, 'id' | 'timestamp'>,
   ) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
     setSessions((prev) => {
       const session = prev[sessionId];
       if (!session) {
@@ -342,10 +533,13 @@ function App() {
     contextNote: string;
     seedMessages: ChatMessage[];
     skillNodeId?: string;
-  }) => {
+  }): string | null => {
+    if (!activeWorkspaceId) {
+      return null;
+    }
     const parent = nodeMap.get(parentId);
     if (!parent) {
-      return;
+      return null;
     }
 
     const sessionId = nextId('session');
@@ -378,6 +572,7 @@ function App() {
         [sessionId]: record,
       };
     });
+    setSessionRichBlocks(sessionId, []);
 
     // Link back: only update the skill node's sessionId for topic sessions
     // Ask/explain branches must not overwrite the topic session link
@@ -398,19 +593,27 @@ function App() {
     }
 
     activateSession(sessionId);
+    return sessionId;
   };
 
   const handleSendMessage = (rawMessage: string) => {
+    if (!activeNode) {
+      return;
+    }
     appendMessage(activeSessionId, { role: 'user', content: rawMessage });
     const { text, rich } = assistantReplyFor(activeNode.kind, rawMessage);
     appendMessage(activeSessionId, { role: 'assistant', content: text });
     if (rich) {
-      setRichBlocks(rich);
+      setSessionRichBlocks(activeSessionId, rich);
       changeLeftTab('content');
     }
   };
 
   const handleCreateBranch = (kind: 'ask' | 'explain', selectedText: string) => {
+    if (!activeNode) {
+      return;
+    }
+    changeLeftTab('skill-tree');
     const label = selectedText.slice(0, 42);
     const title = `${kind === 'ask' ? 'Ask' : 'Explain'} • ${label}`;
     const promptProfile = branchPromptProfile(kind);
@@ -449,6 +652,7 @@ function App() {
   };
 
   const handleAdvancePlanning = () => {
+    if (!activeSession) return;
     if (!activeSession.planning) return;
 
     const stepIndex = activeSession.planning.steps.findIndex(
@@ -494,6 +698,9 @@ function App() {
 
 
   const handleFinishPlanning = () => {
+    if (!activeWorkspaceId) {
+      return;
+    }
     const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
     const report = mainSession?.planning?.report;
     if (!report) {
@@ -517,6 +724,9 @@ function App() {
   };
 
   const handleSelectSkillNode = (skillNodeId: string) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
     const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
     const skillNode = mainSession?.skillNodes.find((n) => n.id === skillNodeId);
     if (!skillNode || skillNode.status === 'locked') return;
@@ -542,7 +752,7 @@ function App() {
     });
 
     // Open a dedicated topic session and start tutoring immediately
-    createSubSession({
+    const topicSessionId = createSubSession({
       parentId: MAIN_SESSION_ID,
       kind: 'topic',
       title: skillNode.title,
@@ -561,13 +771,16 @@ function App() {
 
     // Emit the topic's code block to the rich content panel
     const topicBlocks = RICH_CODE_TOPIC[skillNode.title];
-    if (topicBlocks) {
-      setRichBlocks(topicBlocks);
+    if (topicBlocks && topicSessionId) {
+      setSessionRichBlocks(topicSessionId, topicBlocks);
       changeLeftTab('content');
     }
   };
 
   const handleCompleteSkill = (skillNodeId: string) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
     setSessions((prev) => {
       const session = prev[MAIN_SESSION_ID] as MainSessionRecord;
       if (!session) return prev;
@@ -587,10 +800,10 @@ function App() {
     });
   };
 
-  const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
+  const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
   const mainSkillNodes = mainSession?.skillNodes ?? [];
   const mainPhase: MainSessionPhase = mainSession?.phase ?? 'planning';
-  const activeSkillNodeId = activeNode.skillNodeId;
+  const activeSkillNodeId = activeNode?.skillNodeId;
   const activeSkillStatus: SkillNodeStatus | null = activeSkillNodeId
     ? mainSkillNodes.find((node) => node.id === activeSkillNodeId)?.status ?? null
     : null;
@@ -611,6 +824,72 @@ function App() {
     }),
   };
 
+  if (!activeWorkspaceId || !activeWorkspace || !activeNode || !activeSession) {
+    return (
+      <WelcomePage
+        sessions={workspaceSummaries}
+        onOpenSession={handleOpenWorkspace}
+        onCreateSession={handleCreateWorkspace}
+      />
+    );
+  }
+
+  if (mainPhase === 'setup') {
+    return (
+      <motion.div
+        className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                <Sparkles className="h-4 w-4 text-teal-600" />
+                LearnAgent Prototype
+              </p>
+              <p className="mt-1 text-xs text-slate-500">{activeWorkspace.title}</p>
+            </div>
+            <motion.button
+              type="button"
+              onClick={handleBackToWelcome}
+              whileHover={reducedMotion ? undefined : { y: -1 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Sessions
+            </motion.button>
+          </div>
+        </motion.header>
+
+        <motion.main
+          className="mt-4 flex min-h-[calc(100vh-7.5rem)] items-center justify-center"
+          variants={pageItemVariants}
+        >
+          <div className="panel-surface w-full max-w-xl px-6 py-8 text-center sm:px-8">
+            <p className="font-heading text-xl font-semibold text-slate-900">Ready to plan your learning path?</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Start planning to generate your personalized React Hooks roadmap.
+            </p>
+
+            <motion.button
+              type="button"
+              onClick={handleStartPlanning}
+              whileHover={reducedMotion ? undefined : { y: -1 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+              transition={springFor(reducedMotion, 'snappy')}
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Plan
+            </motion.button>
+          </div>
+        </motion.main>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
@@ -620,11 +899,24 @@ function App() {
     >
       <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
         <div className="flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-            <Sparkles className="h-4 w-4 text-teal-600" />
-            LearnAgent Prototype
-          </p>
+          <div>
+            <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+              <Sparkles className="h-4 w-4 text-teal-600" />
+              LearnAgent Prototype
+            </p>
+            <p className="mt-1 text-xs text-slate-500">{activeWorkspace.title}</p>
+          </div>
           <div className="flex items-center gap-2">
+            <motion.button
+              type="button"
+              onClick={handleBackToWelcome}
+              whileHover={reducedMotion ? undefined : { y: -1 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Sessions
+            </motion.button>
             <div className="hidden max-w-[420px] overflow-hidden md:block">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.p
@@ -674,7 +966,7 @@ function App() {
               </motion.button>
 
               <AnimatePresence initial={false}>
-                {richBlocks.length > 0 && (
+                {(activeRichBlocks.length > 0 || leftTab === 'content') && (
                   <motion.button
                     key="content-tab"
                     type="button"
@@ -735,7 +1027,10 @@ function App() {
                     animate="center"
                     exit="exit"
                   >
-                    <RichContentPanel blocks={richBlocks} />
+                    <RichContentPanel
+                      blocks={activeRichBlocks}
+                      onCreateBranch={handleCreateBranch}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -748,6 +1043,7 @@ function App() {
           variants={fadeSlideY(reducedMotion, 16, MOTION_DURATION.slow)}
         >
           <SessionChat
+            key={activeSession.id}
             activeNode={activeNode}
             activeSession={activeSession}
             mainPhase={mainPhase}
