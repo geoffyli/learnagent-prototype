@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, ChevronRight, CircleDot, SendHorizontal, WandSparkles } from 'lucide-react';
+import { CONTENT_PACK_LABELS, type ContentPackId } from '../data/richReplies';
 import {
   AnySessionRecord,
   ChatMessage,
@@ -18,7 +19,7 @@ interface SessionChatProps {
   mainPhase: MainSessionPhase;
   activeSkillNodeId?: string;
   activeSkillStatus?: SkillNodeStatus | null;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, options?: { displayMessage?: string }) => void;
   onCreateBranch: (kind: 'ask' | 'explain', selectedText: string) => void;
   onAdvancePlanning: () => void;
   onFinishPlanning: () => void;
@@ -31,37 +32,60 @@ interface SelectionPopover {
   y: number;
 }
 
-function getQuickActions(kind: SessionNode['kind'], mainPhase: MainSessionPhase): string[] {
+interface QuickAction {
+  label: string;
+  prompt: string;
+  category?: 'content' | 'question';
+}
+
+const CONTENT_ACTION_PACKS: ContentPackId[] = [
+  'hooks-lifecycle-map',
+  'effect-dependency-timeline',
+  'state-vs-reducer-tradeoff',
+  'stale-closure-debug-trace',
+  'async-fetching-safety-checklist',
+  'performance-playbook',
+];
+
+const CONTENT_QUICK_ACTIONS: QuickAction[] = CONTENT_ACTION_PACKS.map((packId) => ({
+  label: CONTENT_PACK_LABELS[packId],
+  prompt: `@content:${packId}`,
+  category: 'content',
+}));
+
+function getQuickActions(kind: SessionNode['kind'], mainPhase: MainSessionPhase): QuickAction[] {
   if (kind === 'main' && mainPhase === 'planning') {
     return [];
   }
 
   if (kind === 'main') {
     return [
-      'Which hook should I learn next?',
-      'Show me a useState vs useEffect comparison',
-      'When should I create a custom hook?',
+      { label: 'Which hook should I learn next?', prompt: 'Which hook should I learn next?' },
+      { label: 'Show useState vs useEffect', prompt: 'Show me a useState vs useEffect comparison' },
+      { label: 'When to create custom hooks?', prompt: 'When should I create a custom hook?' },
     ];
   }
 
   if (kind === 'topic') {
     return [
-      'Show me a real-world example',
-      'What are common mistakes?',
-      'Quiz me on this',
+      ...CONTENT_QUICK_ACTIONS,
+      { label: 'Common mistakes?', prompt: 'What are common mistakes?' },
+      { label: 'Quiz me on this', prompt: 'Quiz me on this' },
     ];
   }
 
   if (kind === 'ask') {
     return [
-      'Show me a practical example',
-      'What is a common mistake with this?',
+      ...CONTENT_QUICK_ACTIONS,
+      { label: 'Show practical example', prompt: 'Show me a practical example' },
+      { label: 'Common mistake here?', prompt: 'What is a common mistake with this?' },
     ];
   }
 
   return [
-    'Explain this with an analogy',
-    'Give me the one-sentence mental model',
+    ...CONTENT_QUICK_ACTIONS,
+    { label: 'Explain with analogy', prompt: 'Explain this with an analogy' },
+    { label: 'One-sentence mental model', prompt: 'Give me the one-sentence mental model' },
   ];
 }
 
@@ -185,6 +209,14 @@ export default function SessionChat({
       return;
     }
     onSendMessage(trimmed);
+    setInputsBySession((prev) => ({ ...prev, [activeSession.id]: '' }));
+    clearNativeSelection();
+  };
+
+  const submitQuickAction = (action: QuickAction) => {
+    onSendMessage(action.prompt, {
+      displayMessage: action.label,
+    });
     setInputsBySession((prev) => ({ ...prev, [activeSession.id]: '' }));
     clearNativeSelection();
   };
@@ -469,15 +501,19 @@ export default function SessionChat({
             >
               {quickActions.map((action) => (
                 <motion.button
-                  key={action}
+                  key={`${action.label}-${action.prompt}`}
                   type="button"
-                  onClick={() => submitInput(action)}
+                  onClick={() => submitQuickAction(action)}
                   variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
                   whileHover={reducedMotion ? undefined : { y: -1 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 transition hover:border-teal-300 hover:text-teal-700"
+                  className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                    action.category === 'content'
+                      ? 'border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:text-teal-700'
+                  }`}
                 >
-                  {action}
+                  {action.label}
                 </motion.button>
               ))}
             </motion.div>

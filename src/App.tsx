@@ -27,12 +27,8 @@ import {
   SkillNodeStatus,
 } from './types/session-graph';
 import type { ContentBlock } from './types/content-blocks';
-import {
-  RICH_CODE_COUNTER,
-  RICH_CODE_TOPIC,
-  RICH_COMPARISON_TABLE,
-  RICH_FLASHCARDS,
-} from './data/richReplies';
+import { TOPIC_DEFAULT_PACKS } from './data/richReplies';
+import { resolvePackById, resolveRichContent } from './state/content-resolver';
 
 // Legacy export retained for existing prototype files that still import this type.
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
@@ -203,32 +199,17 @@ function topicIntroFor(title: string, description: string): string {
   return `Let's dive into **${title}** — ${description}\n\nThe code panel on the left shows the basic pattern. Ask me anything, request a quiz, or a comparison.`;
 }
 
-function assistantReplyFor(
-  kind: SessionKind,
-  message: string,
-): { text: string; rich?: ContentBlock[] } {
+function assistantFallbackReplyFor(kind: SessionKind, message: string): string {
   if (kind === 'topic') {
-    const lower = message.toLowerCase();
-    if (lower.includes('example') || lower.includes('show')) {
-      return { text: 'Here\'s a real-world example:', rich: RICH_CODE_COUNTER };
-    }
-    if (lower.includes('vs') || lower.includes('comparison') || lower.includes('reducer')) {
-      return { text: 'Here\'s how they compare:', rich: RICH_COMPARISON_TABLE };
-    }
-    if (lower.includes('quiz') || lower.includes('test') || lower.includes('practice')) {
-      return { text: 'Let\'s test your knowledge — flip the cards:', rich: RICH_FLASHCARDS };
-    }
-    return {
-      text: `Good question. Here's what you need to know about "${message}". Try asking for an example, a comparison, or a quiz.`,
-    };
+    return `Good question. Here's what you need to know about "${message}". Try asking for a lifecycle map, a debug trace, or a tradeoff matrix.`;
   }
   if (kind === 'ask') {
-    return { text: `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.` };
+    return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;
   }
   if (kind === 'explain') {
-    return { text: 'Understood. I will explain this concept using a compact mental model and one practical analogy.' };
+    return 'Understood. I will explain this concept using a compact mental model and one practical analogy.';
   }
-  return { text: 'I can answer directly, or you can highlight any phrase in my response to branch into Ask/Explain sessions.' };
+  return 'I can answer directly, or you can highlight any phrase in my response to branch into Ask/Explain sessions.';
 }
 
 interface WorkspaceState {
@@ -596,15 +577,31 @@ function App() {
     return sessionId;
   };
 
-  const handleSendMessage = (rawMessage: string) => {
+  const handleSendMessage = (
+    rawMessage: string,
+    options?: { displayMessage?: string },
+  ) => {
     if (!activeNode) {
       return;
     }
-    appendMessage(activeSessionId, { role: 'user', content: rawMessage });
-    const { text, rich } = assistantReplyFor(activeNode.kind, rawMessage);
-    appendMessage(activeSessionId, { role: 'assistant', content: text });
-    if (rich) {
-      setSessionRichBlocks(activeSessionId, rich);
+    appendMessage(activeSessionId, {
+      role: 'user',
+      content: options?.displayMessage ?? rawMessage,
+    });
+
+    const contentResult = resolveRichContent({
+      sessionKind: activeNode.kind,
+      message: rawMessage,
+      topicTitle: activeNode.kind === 'topic' ? activeNode.title : undefined,
+    });
+
+    const assistantText = contentResult.source === 'none'
+      ? assistantFallbackReplyFor(activeNode.kind, options?.displayMessage ?? rawMessage)
+      : contentResult.text;
+    appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
+
+    if (contentResult.rich) {
+      setSessionRichBlocks(activeSessionId, contentResult.rich);
       changeLeftTab('content');
     }
   };
@@ -769,11 +766,14 @@ function App() {
       skillNodeId,
     });
 
-    // Emit the topic's code block to the rich content panel
-    const topicBlocks = RICH_CODE_TOPIC[skillNode.title];
-    if (topicBlocks && topicSessionId) {
-      setSessionRichBlocks(topicSessionId, topicBlocks);
-      changeLeftTab('content');
+    // Emit the topic's default rich pack to the content panel
+    const defaultPackId = TOPIC_DEFAULT_PACKS[skillNode.title]?.[0];
+    if (defaultPackId && topicSessionId) {
+      const topicBlocks = resolvePackById(defaultPackId);
+      if (topicBlocks) {
+        setSessionRichBlocks(topicSessionId, topicBlocks);
+        changeLeftTab('content');
+      }
     }
   };
 
