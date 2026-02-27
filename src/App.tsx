@@ -15,7 +15,11 @@ import {
 } from './state/progression';
 import { applyActiveSession } from './state/session-status';
 import {
+  AgentNodeSuggestion,
   AnySessionRecord,
+  BranchIntent,
+  BranchSessionRecord,
+  BranchSource,
   ChatMessage,
   LearningPlanReport,
   MainSessionRecord,
@@ -29,6 +33,7 @@ import {
 import type { ContentBlock } from './types/content-blocks';
 import { TOPIC_DEFAULT_PACKS } from './data/richReplies';
 import { resolvePackById, resolveRichContent } from './state/content-resolver';
+import { dedupeSuggestions, generateNodeSuggestions } from './state/skill-tree-agent';
 
 // Legacy export retained for existing prototype files that still import this type.
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
@@ -38,6 +43,7 @@ const EMPTY_RICH_BLOCKS: ContentBlock[] = [];
 const EMPTY_RICH_BLOCKS_BY_SESSION: Record<string, ContentBlock[]> = {};
 const EMPTY_NODES: SessionNode[] = [];
 const EMPTY_SESSIONS: Record<string, AnySessionRecord> = {};
+const EMPTY_SUGGESTIONS: AgentNodeSuggestion[] = [];
 
 
 const REACT_HOOKS_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
@@ -185,12 +191,24 @@ function generateLearningReport(): LearningPlanReport {
   };
 }
 
-function branchPromptProfile(kind: SessionKind): string {
-  if (kind === 'ask') {
+function branchPromptProfile(intent: BranchIntent): string {
+  if (intent === 'ask') {
     return 'ask-concept-subagent';
   }
-  if (kind === 'explain') {
+  if (intent === 'explain') {
     return 'explain-concept-subagent';
+  }
+  if (intent === 'debug') {
+    return 'debug-subagent';
+  }
+  if (intent === 'compare') {
+    return 'compare-subagent';
+  }
+  if (intent === 'practice') {
+    return 'practice-subagent';
+  }
+  if (intent === 'plan') {
+    return 'planning-subagent';
   }
   return 'general-subagent';
 }
@@ -199,15 +217,21 @@ function topicIntroFor(title: string, description: string): string {
   return `Let's dive into **${title}** — ${description}\n\nThe code panel on the left shows the basic pattern. Ask me anything, request a quiz, or a comparison.`;
 }
 
-function assistantFallbackReplyFor(kind: SessionKind, message: string): string {
+function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: BranchIntent): string {
   if (kind === 'topic') {
     return `Good question. Here's what you need to know about "${message}". Try asking for a lifecycle map, a debug trace, or a tradeoff matrix.`;
   }
-  if (kind === 'ask') {
+  if (kind === 'branch' && intent === 'ask') {
     return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;
   }
-  if (kind === 'explain') {
+  if (kind === 'branch' && intent === 'explain') {
     return 'Understood. I will explain this concept using a compact mental model and one practical analogy.';
+  }
+  if (kind === 'branch' && intent === 'debug') {
+    return 'I can help debug this by narrowing probable causes and validating each assumption.';
+  }
+  if (kind === 'branch' && intent === 'compare') {
+    return 'I can compare options and give a crisp tradeoff-oriented recommendation.';
   }
   return 'I can answer directly, or you can highlight any phrase in my response to branch into Ask/Explain sessions.';
 }
@@ -220,6 +244,7 @@ interface WorkspaceState {
   leftTab: 'skill-tree' | 'content';
   tabDirection: number;
   richBlocksBySession: Record<string, ContentBlock[]>;
+  agentSuggestionsBySession: Record<string, AgentNodeSuggestion[]>;
   nodes: SessionNode[];
   sessions: Record<string, AnySessionRecord>;
   activeSessionId: string;
@@ -248,6 +273,9 @@ function createWorkspace(id: string, title: string): WorkspaceState {
     leftTab: 'skill-tree',
     tabDirection: -1,
     richBlocksBySession: {
+      [MAIN_SESSION_ID]: [],
+    },
+    agentSuggestionsBySession: {
       [MAIN_SESSION_ID]: [],
     },
     nodes: [
@@ -347,6 +375,19 @@ function App() {
     }));
   };
 
+  const setAgentSuggestionsBySession = (
+    sessionId: string,
+    next: SetStateAction<AgentNodeSuggestion[]>,
+  ) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      agentSuggestionsBySession: {
+        ...workspace.agentSuggestionsBySession,
+        [sessionId]: resolveState(workspace.agentSuggestionsBySession[sessionId] ?? EMPTY_SUGGESTIONS, next),
+      },
+    }));
+  };
+
   const setSessions = (next: SetStateAction<Record<string, AnySessionRecord>>) => {
     updateActiveWorkspace((workspace) => ({
       ...workspace,
@@ -366,8 +407,10 @@ function App() {
   const richBlocksBySession = workspaceState?.richBlocksBySession ?? EMPTY_RICH_BLOCKS_BY_SESSION;
   const nodes = workspaceState?.nodes ?? EMPTY_NODES;
   const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
+  const agentSuggestionsBySession = workspaceState?.agentSuggestionsBySession ?? {};
   const activeSessionId = workspaceState?.activeSessionId ?? MAIN_SESSION_ID;
   const activeRichBlocks = richBlocksBySession[activeSessionId] ?? EMPTY_RICH_BLOCKS;
+  const activeSuggestions = agentSuggestionsBySession[activeSessionId] ?? EMPTY_SUGGESTIONS;
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, SessionNode>();
@@ -499,21 +542,27 @@ function App() {
   const createSubSession = ({
     parentId,
     kind,
+    intent,
+    source,
     title,
     originText,
     promptProfile,
     contextNote,
     seedMessages,
     skillNodeId,
+    rank,
   }: {
     parentId: string;
-    kind: 'ask' | 'explain' | 'topic';
+    kind: 'branch' | 'topic';
+    intent?: BranchIntent;
+    source?: BranchSource;
     title: string;
     originText?: string;
     promptProfile: string;
     contextNote: string;
     seedMessages: ChatMessage[];
     skillNodeId?: string;
+    rank?: number;
   }): string | null => {
     if (!activeWorkspaceId) {
       return null;
@@ -528,10 +577,13 @@ function App() {
       id: sessionId,
       title,
       kind,
+      intent,
+      source,
       status: 'active',
       parentId,
       depth: parent.depth + 1,
       createdAt: Date.now(),
+      rank,
       originText,
       skillNodeId,
     };
@@ -540,20 +592,32 @@ function App() {
       return [...prev, nextNode];
     });
     setSessions((prev) => {
-      const record: AnySessionRecord = {
-        id: sessionId,
-        kind,
-        promptProfile,
-        contextNote,
-        messages: seedMessages,
-        planning: null,
-      };
+      const record: AnySessionRecord = kind === 'topic'
+        ? {
+            id: sessionId,
+            kind: 'topic',
+            promptProfile,
+            contextNote,
+            messages: seedMessages,
+            planning: null,
+          }
+        : {
+            id: sessionId,
+            kind: 'branch',
+            intent: intent ?? 'ask',
+            source: source ?? 'manual-selection',
+            promptProfile,
+            contextNote,
+            messages: seedMessages,
+            planning: null,
+          } satisfies BranchSessionRecord;
       return {
         ...prev,
         [sessionId]: record,
       };
     });
     setSessionRichBlocks(sessionId, []);
+    setAgentSuggestionsBySession(sessionId, []);
 
     // Link back: only update the skill node's sessionId for topic sessions
     // Ask/explain branches must not overwrite the topic session link
@@ -596,9 +660,20 @@ function App() {
     });
 
     const assistantText = contentResult.source === 'none'
-      ? assistantFallbackReplyFor(activeNode.kind, options?.displayMessage ?? rawMessage)
+      ? assistantFallbackReplyFor(activeNode.kind, options?.displayMessage ?? rawMessage, activeNode.intent)
       : contentResult.text;
     appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
+
+    const suggestions = generateNodeSuggestions({
+      parentSessionId: activeSessionId,
+      parentTitle: activeNode.title,
+      skillNodeId: activeNode.skillNodeId,
+      userMessage: rawMessage,
+      assistantMessage: assistantText,
+      siblingNodes: nodes,
+      now: Date.now(),
+    });
+    setAgentSuggestionsBySession(activeSessionId, (prev) => dedupeSuggestions(prev, suggestions));
 
     if (contentResult.rich) {
       setSessionRichBlocks(activeSessionId, contentResult.rich);
@@ -624,7 +699,9 @@ function App() {
 
     createSubSession({
       parentId: activeSessionId,
-      kind,
+      kind: 'branch',
+      intent: kind,
+      source: 'manual-selection',
       title,
       originText: selectedText,
       promptProfile,
@@ -646,6 +723,59 @@ function App() {
       ],
       skillNodeId: currentSkillNodeId,
     });
+  };
+
+  const handleAcceptSuggestion = (sessionId: string, suggestionId: string) => {
+    const suggestion = (agentSuggestionsBySession[sessionId] ?? []).find((item) => item.id === suggestionId);
+    if (!suggestion || !activeWorkspaceId) {
+      return;
+    }
+
+    if (suggestion.action === 'create') {
+      const siblingCount = nodes.filter((node) => node.parentId === sessionId).length;
+      createSubSession({
+        parentId: sessionId,
+        kind: 'branch',
+        intent: suggestion.intent ?? 'ask',
+        source: 'agent-suggestion',
+        title: suggestion.title,
+        originText: suggestion.originText,
+        promptProfile: suggestion.promptProfile,
+        contextNote: suggestion.contextNote,
+        seedMessages: [
+          {
+            id: nextId('msg'),
+            role: 'assistant',
+            content: suggestion.seedIntro,
+            timestamp: createTimestamp(),
+          },
+        ],
+        skillNodeId: suggestion.skillNodeId,
+        rank: siblingCount,
+      });
+    }
+
+    if (suggestion.action === 'retitle') {
+      setNodes((prev) =>
+        prev.map((node) =>
+          node.id === suggestion.targetSessionId ? { ...node, title: suggestion.nextTitle } : node,
+        ),
+      );
+    }
+
+    if (suggestion.action === 'reprioritize') {
+      setNodes((prev) =>
+        prev.map((node) =>
+          node.id === suggestion.targetSessionId ? { ...node, rank: suggestion.nextRank } : node,
+        ),
+      );
+    }
+
+    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
+  };
+
+  const handleDismissSuggestion = (sessionId: string, suggestionId: string) => {
+    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
   };
 
   const handleAdvancePlanning = () => {
@@ -1010,11 +1140,14 @@ function App() {
                     <SessionCanvas
                       nodes={nodes}
                       activeSessionId={activeSessionId}
+                      activeSuggestions={activeSuggestions}
                       skillNodes={mainSkillNodes}
                       mainPhase={mainPhase}
                       planningState={mainSession?.planning ?? null}
                       onSelectSession={activateSession}
                       onSelectSkillNode={handleSelectSkillNode}
+                      onAcceptSuggestion={(suggestionId) => handleAcceptSuggestion(activeSessionId, suggestionId)}
+                      onDismissSuggestion={(suggestionId) => handleDismissSuggestion(activeSessionId, suggestionId)}
                     />
                   </motion.div>
                 ) : (

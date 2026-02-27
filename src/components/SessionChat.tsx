@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronRight, CircleDot, SendHorizontal, WandSparkles } f
 import { CONTENT_PACK_LABELS, type ContentPackId } from '../data/richReplies';
 import {
   AnySessionRecord,
+  BranchIntent,
   ChatMessage,
   MainSessionPhase,
   MainSessionRecord,
@@ -74,7 +75,7 @@ function getQuickActions(kind: SessionNode['kind'], mainPhase: MainSessionPhase)
     ];
   }
 
-  if (kind === 'ask') {
+  if (kind === 'branch') {
     return [
       ...CONTENT_QUICK_ACTIONS,
       { label: 'Show practical example', prompt: 'Show me a practical example' },
@@ -224,11 +225,9 @@ export default function SessionChat({
   const sessionTypeLabel =
     activeSession.kind === 'main'
       ? mainPhase === 'planning' ? 'Planning' : 'Main'
-      : activeSession.kind === 'ask'
-        ? 'Ask'
-        : activeSession.kind === 'explain'
-          ? 'Explain'
-          : 'Topic';
+      : activeSession.kind === 'topic'
+        ? 'Topic'
+        : ((activeSession as { intent?: BranchIntent }).intent ?? 'Branch').replace(/^./, (letter) => letter.toUpperCase());
 
   return (
     <div className="panel-surface flex h-full flex-col overflow-hidden">

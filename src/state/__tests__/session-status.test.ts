@@ -24,7 +24,8 @@ describe('applyActiveSession', () => {
     {
       id: 'done',
       title: 'Done',
-      kind: 'ask' as const,
+      kind: 'branch' as const,
+      intent: 'ask' as const,
       status: 'completed' as const,
       parentId: 'topic',
       depth: 2,

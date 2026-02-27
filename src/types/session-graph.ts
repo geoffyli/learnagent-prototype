@@ -1,4 +1,7 @@
-export type SessionKind = 'main' | 'ask' | 'explain' | 'topic';
+export type SessionKind = 'main' | 'topic' | 'branch';
+export type BranchIntent = 'ask' | 'explain' | 'debug' | 'compare' | 'practice' | 'plan' | 'recap';
+export type BranchSource = 'manual-selection' | 'agent-suggestion' | 'quick-action';
+export type SuggestionAction = 'create' | 'retitle' | 'reprioritize';
 
 export type SessionStatus = 'active' | 'idle' | 'completed';
 
@@ -29,13 +32,52 @@ export interface SessionNode {
   id: string;
   title: string;
   kind: SessionKind;
+  intent?: BranchIntent;
+  source?: BranchSource;
   status: SessionStatus;
   parentId: string | null;
   depth: number;
   createdAt: number;
+  rank?: number;
   originText?: string;
   skillNodeId?: string;
 }
+
+interface AgentNodeSuggestionBase {
+  id: string;
+  parentSessionId: string;
+  skillNodeId?: string;
+  action: SuggestionAction;
+  intent?: BranchIntent;
+  rationale: string;
+  createdAt: number;
+}
+
+export interface CreateNodeSuggestion extends AgentNodeSuggestionBase {
+  action: 'create';
+  title: string;
+  originText?: string;
+  promptProfile: string;
+  contextNote: string;
+  seedIntro: string;
+}
+
+export interface RetitleNodeSuggestion extends AgentNodeSuggestionBase {
+  action: 'retitle';
+  targetSessionId: string;
+  nextTitle: string;
+}
+
+export interface ReprioritizeNodeSuggestion extends AgentNodeSuggestionBase {
+  action: 'reprioritize';
+  targetSessionId: string;
+  nextRank: number;
+}
+
+export type AgentNodeSuggestion =
+  | CreateNodeSuggestion
+  | RetitleNodeSuggestion
+  | ReprioritizeNodeSuggestion;
 
 export interface SessionEdge {
   id: string;
@@ -90,23 +132,19 @@ export interface MainSessionRecord extends SessionRecord {
   planning: PlanningState | null;
 }
 
-export interface AskSessionRecord extends SessionRecord {
-  kind: 'ask';
-  planning: null;
-}
-
-export interface ExplainSessionRecord extends SessionRecord {
-  kind: 'explain';
-  planning: null;
-}
-
 export interface TopicSessionRecord extends SessionRecord {
   kind: 'topic';
   planning: null;
 }
 
+export interface BranchSessionRecord extends SessionRecord {
+  kind: 'branch';
+  intent: BranchIntent;
+  source: BranchSource;
+  planning: null;
+}
+
 export type AnySessionRecord =
   | MainSessionRecord
-  | AskSessionRecord
-  | ExplainSessionRecord
-  | TopicSessionRecord;
+  | TopicSessionRecord
+  | BranchSessionRecord;
