@@ -32,74 +32,74 @@ const EXPLICIT_PATTERN = /@content:([a-z0-9-]+)/i;
 const INTENT_RULES: IntentRule[] = [
   {
     packId: 'effect-dependency-timeline',
-    keywords: ['lifecycle', 'effect', 'dependency', 'deps', 'cleanup'],
-    reason: 'effect lifecycle intent',
+    keywords: ['timeline', 'interview flow', 'interview timeline', 'step by step'],
+    reason: 'interview timeline intent',
     baseScore: 0,
   },
   {
     packId: 'state-vs-reducer-tradeoff',
-    keywords: ['vs', 'versus', 'comparison', 'tradeoff', 'useReducer', 'reducer'],
-    reason: 'tradeoff intent',
+    keywords: ['vs', 'versus', 'comparison', 'tradeoff', 'sql vs', 'dashboard vs'],
+    reason: 'prioritization tradeoff intent',
     baseScore: 0,
   },
   {
     packId: 'stale-closure-debug-trace',
-    keywords: ['debug', 'stale', 'closure', 'rerender', 'why rerender', 'trace'],
-    reason: 'debugging intent',
+    keywords: ['debug', 'query issue', 'sql bug', 'trace', 'wrong result', 'stale', 'closure', 'rerender'],
+    reason: 'query debugging intent',
     baseScore: 0,
   },
   {
     packId: 'async-fetching-safety-checklist',
-    keywords: ['checklist', 'safe', 'steps', 'fetch', 'race', 'abort'],
-    reason: 'safety checklist intent',
+    keywords: ['resume', 'cv', 'checklist', 'tailor', 'resume checklist'],
+    reason: 'resume checklist intent',
     baseScore: 0,
   },
   {
     packId: 'context-rerender-metrics',
-    keywords: ['metrics', 'measure', 'perf', 'performance', 'optimize', 'context'],
-    reason: 'metrics/performance intent',
+    keywords: ['mastery', 'score', 'metrics', 'progress', 'weak area'],
+    reason: 'mastery metrics intent',
     baseScore: 0,
   },
   {
     packId: 'hooks-lifecycle-map',
-    keywords: ['map', 'mental model', 'overview', 'graph'],
-    reason: 'concept map intent',
+    keywords: ['map', 'skill graph', 'overview', 'dependencies', 'learning graph'],
+    reason: 'skill graph intent',
     baseScore: 0,
   },
   {
     packId: 'performance-playbook',
-    keywords: ['playbook', 'optimize', 'latency', 'slow'],
-    reason: 'performance playbook intent',
+    keywords: ['dashboard performance', 'playbook', 'slow dashboard', 'latency'],
+    reason: 'dashboard performance intent',
     baseScore: 0,
   },
   {
     packId: 'custom-hook-blueprint',
-    keywords: ['custom hook', 'blueprint', 'extract', 'reuse'],
-    reason: 'custom hook design intent',
+    keywords: ['blueprint', 'case answer', 'structure answer', 'answer framework'],
+    reason: 'case answer blueprint intent',
     baseScore: 0,
   },
   {
     packId: 'render-waterfall-diagnosis',
-    keywords: ['waterfall', 'cascade', 'duplicate render'],
-    reason: 'render waterfall diagnosis intent',
+    keywords: ['funnel', 'drop off', 'waterfall', 'diagnosis'],
+    reason: 'funnel diagnosis intent',
     baseScore: 0,
   },
   {
     packId: 'anti-patterns-callout-wall',
-    keywords: ['anti-pattern', 'mistake', 'pitfall', 'bad practice'],
-    reason: 'anti-pattern intent',
+    keywords: ['anti-pattern', 'mistake', 'pitfall', 'bad practice', 'interview mistake'],
+    reason: 'interview anti-pattern intent',
     baseScore: 0,
   },
   {
     packId: 'architecture-learning-roadmap',
-    keywords: ['architecture', 'roadmap', 'plan learning', 'learning path'],
-    reason: 'architecture roadmap intent',
+    keywords: ['roadmap', 'learning path', '8 week plan', 'job sprint'],
+    reason: 'job sprint roadmap intent',
     baseScore: 0,
   },
   {
     packId: 'memoization-decision-kit',
-    keywords: ['memo', 'memoize', 'useMemo', 'useCallback', 'decision'],
-    reason: 'memoization decision intent',
+    keywords: ['strategy', 'question strategy', 'decision kit', 'answer strategy'],
+    reason: 'interview strategy intent',
     baseScore: 0,
   },
 ];
@@ -190,7 +190,7 @@ export function resolveRichContent(options: ResolveRichContentOptions): RichCont
 
   if (options.sessionKind === 'topic') {
     const topicPack = topicDefaultPack(options.topicTitle);
-    if (topicPack && /example|show|visual|content/i.test(options.message)) {
+    if (topicPack && /example|show|visual|content|practice|drill/i.test(options.message)) {
       return {
         source: 'intent',
         text: `Here is ${labelForPack(topicPack)} for ${options.topicTitle}.`,
