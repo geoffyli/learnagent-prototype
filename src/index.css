@@ -5,11 +5,11 @@
 @tailwind utilities;
 
 :root {
-  --bg-a: #f2f8f6;
-  --bg-b: #fffaf1;
+  --bg-a: #eef5f8;
+  --bg-b: #f8fbff;
   --ink: #0f172a;
-  --line: #dbe6e2;
-  --panel: rgba(255, 255, 255, 0.78);
+  --line: #cfdbe5;
+  --panel: rgba(255, 255, 255, 0.9);
   --motion-micro: 160ms;
   --motion-fast: 220ms;
   --motion-base: 300ms;
@@ -32,7 +32,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(900px 360px at 0% -10%, #e6f3ef 0%, transparent 72%),
+    radial-gradient(900px 360px at 0% -10%, #ddeff2 0%, transparent 72%),
     linear-gradient(132deg, var(--bg-a), var(--bg-b));
 }
 
@@ -46,11 +46,41 @@ body {
 
 .hero-shell {
   border: 1px solid rgba(255, 255, 255, 0.7);
-  background: linear-gradient(138deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.76));
+  background: linear-gradient(138deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
   box-shadow:
     0 8px 20px rgba(17, 24, 39, 0.05),
     0 1px 4px rgba(17, 24, 39, 0.05);
   backdrop-filter: blur(8px);
+}
+
+/* Readability tuning layer: increase text/background contrast in light mode. */
+.text-slate-500 {
+  color: #475569 !important;
+}
+
+.text-slate-400 {
+  color: #64748b !important;
+}
+
+.text-slate-300 {
+  color: #64748b !important;
+}
+
+.border-white\/50,
+.border-white\/70 {
+  border-color: rgba(148, 163, 184, 0.42) !important;
+}
+
+.bg-white\/55 {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.bg-white\/70 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.bg-white\/80 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .panel-surface {

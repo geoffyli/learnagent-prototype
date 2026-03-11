@@ -25,6 +25,20 @@ interface SessionChatProps {
   onAdvancePlanning: () => void;
   onFinishPlanning: () => void;
   onCompleteSkill?: (skillNodeId: string) => void;
+  packageSuggestedActions?: Array<{ label: string; prompt: string }>;
+  creatorCommands?: Array<{
+    id: string;
+    trigger: string;
+    name: string;
+    description: string;
+    inputFields?: Array<{
+      id: string;
+      label: string;
+      placeholder?: string;
+      required?: boolean;
+      type?: 'text' | 'url';
+    }>;
+  }>;
 }
 
 interface SelectionPopover {
@@ -33,10 +47,15 @@ interface SelectionPopover {
   y: number;
 }
 
+interface CommandDialogState {
+  commandId: string;
+  values: Record<string, string>;
+}
+
 interface QuickAction {
   label: string;
   prompt: string;
-  category?: 'content' | 'question';
+  category?: 'content' | 'question' | 'command';
 }
 
 const CONTENT_ACTION_PACKS: ContentPackId[] = [
@@ -54,31 +73,44 @@ const CONTENT_QUICK_ACTIONS: QuickAction[] = CONTENT_ACTION_PACKS.map((packId) =
   category: 'content',
 }));
 
-function getQuickActions(kind: SessionNode['kind'], mainPhase: MainSessionPhase): QuickAction[] {
+function getQuickActions(
+  kind: SessionNode['kind'],
+  mainPhase: MainSessionPhase,
+  packageSuggestedActions: Array<{ label: string; prompt: string }>,
+): QuickAction[] {
+  const suggested: QuickAction[] = packageSuggestedActions.map((item) => ({
+    label: item.label,
+    prompt: item.prompt,
+    category: 'command',
+  }));
+
   if (kind === 'main' && mainPhase === 'planning') {
     return [];
   }
 
   if (kind === 'main') {
     return [
-      { label: 'Which hook should I learn next?', prompt: 'Which hook should I learn next?' },
-      { label: 'Show useState vs useEffect', prompt: 'Show me a useState vs useEffect comparison' },
-      { label: 'When to create custom hooks?', prompt: 'When should I create a custom hook?' },
+      ...suggested,
+      { label: 'Which skill should I focus on next?', prompt: 'Which skill should I learn next?' },
+      { label: 'Show SQL vs dashboard priorities', prompt: 'Show SQL vs dashboard priorities for interviews' },
+      { label: 'What should I review this week?', prompt: 'What should I review this week?' },
     ];
   }
 
   if (kind === 'topic') {
     return [
+      ...suggested,
       ...CONTENT_QUICK_ACTIONS,
-      { label: 'Common mistakes?', prompt: 'What are common mistakes?' },
-      { label: 'Quiz me on this', prompt: 'Quiz me on this' },
+      { label: 'Common interview mistakes?', prompt: 'What are common interview mistakes here?' },
+      { label: 'Run mastery check', prompt: 'Quiz me on this topic' },
     ];
   }
 
   if (kind === 'branch') {
     return [
+      ...suggested,
       ...CONTENT_QUICK_ACTIONS,
-      { label: 'Show practical example', prompt: 'Show me a practical example' },
+      { label: 'Show practical interview example', prompt: 'Show me a practical interview example' },
       { label: 'Common mistake here?', prompt: 'What is a common mistake with this?' },
     ];
   }
@@ -100,6 +132,18 @@ function messageStyle(message: ChatMessage): string {
   return 'bg-teal-600 text-white border border-teal-500';
 }
 
+function parseCommandExecutionCard(content: string) {
+  const lines = content.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (!lines[0]?.startsWith('Command executed:')) {
+    return null;
+  }
+  const title = lines[0].replace('Command executed:', '').trim();
+  const trigger = lines.find((line) => line.startsWith('Trigger:'))?.replace('Trigger:', '').trim() ?? '';
+  const input = lines.find((line) => line.startsWith('Received input:'))?.replace('Received input:', '').trim() ?? '';
+  const outputStyle = lines.find((line) => line.startsWith('Output style:'))?.replace('Output style:', '').trim() ?? '';
+  return { title, trigger, input, outputStyle };
+}
+
 export default function SessionChat({
   activeNode,
   activeSession,
@@ -111,18 +155,34 @@ export default function SessionChat({
   onAdvancePlanning,
   onFinishPlanning,
   onCompleteSkill,
+  packageSuggestedActions = [],
+  creatorCommands = [],
 }: SessionChatProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [inputsBySession, setInputsBySession] = useState<Record<string, string>>({});
   const [selectionPopover, setSelectionPopover] = useState<SelectionPopover | null>(null);
   const [selectionText, setSelectionText] = useState('');
+  const [commandDialog, setCommandDialog] = useState<CommandDialogState | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const input = inputsBySession[activeSession.id] ?? '';
 
+  const commandQuery = input.startsWith('/') ? input.toLowerCase() : '';
+  const filteredCommands = useMemo(() => {
+    if (!commandQuery) {
+      return [];
+    }
+    return creatorCommands.filter((command) => command.trigger.toLowerCase().includes(commandQuery));
+  }, [commandQuery, creatorCommands]);
+  const showCommandPopover = Boolean(commandQuery) && commandDialog === null;
+  const activeDialogCommand = useMemo(
+    () => creatorCommands.find((command) => command.id === commandDialog?.commandId) ?? null,
+    [commandDialog?.commandId, creatorCommands],
+  );
+
   const quickActions = useMemo(
-    () => getQuickActions(activeNode.kind, mainPhase),
-    [activeNode.kind, mainPhase],
+    () => getQuickActions(activeNode.kind, mainPhase, packageSuggestedActions),
+    [activeNode.kind, mainPhase, packageSuggestedActions],
   );
 
   const quickActionKey = `${activeNode.kind}-${mainPhase}`;
@@ -222,6 +282,51 @@ export default function SessionChat({
     clearNativeSelection();
   };
 
+  const openCommandDialog = (commandId: string) => {
+    const command = creatorCommands.find((item) => item.id === commandId);
+    if (!command) {
+      return;
+    }
+
+    const nextValues = Object.fromEntries((command.inputFields ?? []).map((field) => [field.id, '']));
+    setCommandDialog({ commandId, values: nextValues });
+    setInputsBySession((prev) => ({ ...prev, [activeSession.id]: '' }));
+  };
+
+  const runCommand = () => {
+    if (!activeDialogCommand || !commandDialog) {
+      return;
+    }
+
+    const requiredMissing = (activeDialogCommand.inputFields ?? [])
+      .some((field) => field.required && !commandDialog.values[field.id]?.trim());
+
+    if (requiredMissing) {
+      return;
+    }
+
+    const argPayload = (activeDialogCommand.inputFields ?? [])
+      .map((field) => {
+        const value = commandDialog.values[field.id]?.trim();
+        if (!value) {
+          return null;
+        }
+        return `${field.id}="${value}"`;
+      })
+      .filter((item): item is string => Boolean(item))
+      .join(' ');
+
+    const rawCommand = argPayload
+      ? `${activeDialogCommand.trigger} ${argPayload}`
+      : activeDialogCommand.trigger;
+    const displayMessage = argPayload
+      ? `${activeDialogCommand.name} (${argPayload})`
+      : activeDialogCommand.name;
+
+    onSendMessage(rawCommand, { displayMessage });
+    setCommandDialog(null);
+  };
+
   const sessionTypeLabel =
     activeSession.kind === 'main'
       ? mainPhase === 'planning' ? 'Planning' : 'Main'
@@ -230,13 +335,13 @@ export default function SessionChat({
         : ((activeSession as { intent?: BranchIntent }).intent ?? 'Branch').replace(/^./, (letter) => letter.toUpperCase());
 
   return (
-    <div className="panel-surface flex h-full flex-col overflow-hidden">
+    <div className="panel-surface relative flex h-full flex-col overflow-hidden">
       <motion.div className="border-b border-white/50 px-4 py-3" variants={fadeSlideY(reducedMotion, 6)}>
         <div className="flex items-center justify-between">
-          <p className="line-clamp-1 font-heading text-sm font-semibold text-slate-900">
+          <p className="line-clamp-1 font-heading text-base font-semibold text-slate-900">
             {activeNode.title}
           </p>
-          <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600">
+          <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
             {sessionTypeLabel}
           </span>
         </div>
@@ -269,7 +374,27 @@ export default function SessionChat({
                     data-selectable={message.role === 'assistant' || message.role === 'system'}
                     className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${messageStyle(message)}`}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {(() => {
+                      const commandCard = message.role === 'assistant'
+                        ? parseCommandExecutionCard(message.content)
+                        : null;
+
+                      if (!commandCard) {
+                        return <p className="whitespace-pre-wrap">{message.content}</p>;
+                      }
+
+                      return (
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            Executed by package engine
+                          </div>
+                          <p className="text-sm font-semibold text-slate-900">{commandCard.title}</p>
+                          <p className="text-xs text-slate-600">Trigger: {commandCard.trigger}</p>
+                          {commandCard.input ? <p className="text-xs text-slate-600">Input: {commandCard.input}</p> : null}
+                          {commandCard.outputStyle ? <p className="text-xs text-slate-600">Output: {commandCard.outputStyle}</p> : null}
+                        </div>
+                      );
+                    })()}
                     <p className="mt-2 text-[11px] opacity-65">{message.timestamp}</p>
                   </div>
                 </motion.div>
@@ -288,7 +413,7 @@ export default function SessionChat({
               exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.96, y: reducedMotion ? 0 : 4 }}
               transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
             >
-              <p className="mb-2 max-w-[220px] text-[11px] text-slate-500">
+              <p className="mb-2 max-w-[220px] text-xs text-slate-600">
                 Branch from selected text:
               </p>
               <div className="flex gap-2">
@@ -299,7 +424,7 @@ export default function SessionChat({
                     clearNativeSelection();
                   }}
                   whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:bg-cyan-100"
+                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100"
                 >
                   Ask
                 </motion.button>
@@ -310,7 +435,7 @@ export default function SessionChat({
                     clearNativeSelection();
                   }}
                   whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-100"
+                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
                 >
                   Explain
                 </motion.button>
@@ -328,7 +453,7 @@ export default function SessionChat({
               exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
               transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
             >
-              <p className="mb-2 max-w-[250px] text-[11px] text-slate-500">
+              <p className="mb-2 max-w-[250px] text-xs text-slate-600">
                 Branch from selected text (keyboard accessible):
               </p>
               <div className="flex gap-2">
@@ -338,7 +463,7 @@ export default function SessionChat({
                     onCreateBranch('ask', selectionText);
                     clearNativeSelection();
                   }}
-                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:bg-cyan-100"
+                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100"
                 >
                   Ask
                 </button>
@@ -348,7 +473,7 @@ export default function SessionChat({
                     onCreateBranch('explain', selectionText);
                     clearNativeSelection();
                   }}
-                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-100"
+                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
                 >
                   Explain
                 </button>
@@ -403,7 +528,7 @@ export default function SessionChat({
                     />
                   ))}
                 </div>
-                <span className="text-[11px] font-medium text-amber-800">
+                  <span className="text-xs font-medium text-amber-800">
                   {allDone ? 'Plan ready' : `Planning · Step ${doneCount + 1} of ${total}`}
                 </span>
               </div>
@@ -421,8 +546,8 @@ export default function SessionChat({
                 >
                   <CircleDot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-900">{activeStep.title}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">{activeStep.details}</p>
+                    <p className="text-sm font-semibold text-slate-900">{activeStep.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-600">{activeStep.details}</p>
                   </div>
                 </motion.div>
               )}
@@ -430,7 +555,7 @@ export default function SessionChat({
 
             {planning.report && (
               <motion.div
-                className="mb-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs text-slate-700"
+                className="mb-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm text-slate-700"
                 initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
@@ -448,7 +573,7 @@ export default function SessionChat({
                 whileHover={!reducedMotion && !allDone ? { y: -1 } : undefined}
                 whileTap={!reducedMotion && !allDone ? { scale: 0.98 } : undefined}
                 transition={springFor(reducedMotion, 'snappy')}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
                 {allDone ? 'All steps done' : 'Continue'}
@@ -461,7 +586,7 @@ export default function SessionChat({
                 whileHover={!reducedMotion && planning.report ? { y: -1 } : undefined}
                 whileTap={!reducedMotion && planning.report ? { scale: 0.98 } : undefined}
                 transition={springFor(reducedMotion, 'snappy')}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Start Learning
@@ -480,9 +605,9 @@ export default function SessionChat({
             whileHover={reducedMotion || activeSkillStatus !== 'in-progress' ? undefined : { y: -1 }}
             whileTap={reducedMotion || activeSkillStatus !== 'in-progress' ? undefined : { scale: 0.98 }}
             transition={springFor(reducedMotion, 'snappy')}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
-            {activeSkillStatus === 'completed' ? 'Skill Completed' : 'Mark Skill Complete'}
+            {activeSkillStatus === 'completed' ? 'Node Mastered' : 'Mark Node Mastered'}
           </motion.button>
         </div>
       )}
@@ -506,12 +631,14 @@ export default function SessionChat({
                   variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
                   whileHover={reducedMotion ? undefined : { y: -1 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                    action.category === 'content'
-                      ? 'border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:text-teal-700'
-                  }`}
-                >
+                    className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                      action.category === 'content'
+                        ? 'border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300'
+                        : action.category === 'command'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:text-teal-700'
+                    }`}
+                  >
                   {action.label}
                 </motion.button>
               ))}
@@ -532,12 +659,46 @@ export default function SessionChat({
               }
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
+                  if (showCommandPopover && filteredCommands.length > 0) {
+                    event.preventDefault();
+                    openCommandDialog(filteredCommands[0].id);
+                    return;
+                  }
                   submitInput(input);
                 }
               }}
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-800 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
-              placeholder="Type a message..."
+              placeholder="Ask about this skill node..."
             />
+            <AnimatePresence>
+              {showCommandPopover && (
+                <motion.div
+                  initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
+                  transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+                  className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                >
+                  {filteredCommands.length === 0 ? (
+                    <p className="px-2 py-1 text-xs text-slate-500">No commands match this prefix.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {filteredCommands.map((command) => (
+                        <button
+                          key={command.id}
+                          type="button"
+                          onClick={() => openCommandDialog(command.id)}
+                          className="w-full rounded-lg border border-transparent px-2 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                        >
+                          <p className="text-sm font-medium text-slate-900">{command.trigger} · {command.name}</p>
+                          <p className="text-xs text-slate-600">{command.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <motion.button
             type="button"
@@ -550,6 +711,76 @@ export default function SessionChat({
           </motion.button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {commandDialog && activeDialogCommand && (
+          <motion.div
+            className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/30 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+          >
+            <motion.div
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
+              transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
+            >
+              <p className="font-heading text-base font-semibold text-slate-900">{activeDialogCommand.name}</p>
+              <p className="mt-1 text-sm text-slate-600">{activeDialogCommand.description}</p>
+
+              <div className="mt-3 space-y-2">
+                {(activeDialogCommand.inputFields ?? []).length === 0 ? (
+                  <p className="text-sm text-slate-600">This command has no required arguments.</p>
+                ) : (
+                  activeDialogCommand.inputFields?.map((field) => (
+                    <div key={field.id}>
+                      <p className="text-sm font-medium text-slate-700">
+                        {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
+                      </p>
+                      <input
+                        type={field.type === 'url' ? 'url' : 'text'}
+                        value={commandDialog.values[field.id] ?? ''}
+                        onChange={(event) => setCommandDialog((prev) => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            values: {
+                              ...prev.values,
+                              [field.id]: event.target.value,
+                            },
+                          };
+                        })}
+                        placeholder={field.placeholder}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none"
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCommandDialog(null)}
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={runCommand}
+                  className="inline-flex min-h-10 items-center rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white"
+                >
+                  Run Command
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,10 +1,11 @@
-import { SetStateAction, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, SetStateAction, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Sparkles, TreePine } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
 import WelcomePage from './components/WelcomePage';
+import CreatorBuilderPage from './components/CreatorBuilderPage';
 import { MOTION_DURATION, springFor, tweenFor } from './motion/tokens';
 import { fadeSlideY, staggerContainer } from './motion/variants';
 import {
@@ -31,9 +32,10 @@ import {
   SkillNodeStatus,
 } from './types/session-graph';
 import type { ContentBlock } from './types/content-blocks';
-import { TOPIC_DEFAULT_PACKS } from './data/richReplies';
+import { CONTENT_PACK_LABELS, TOPIC_DEFAULT_PACKS } from './data/richReplies';
 import { resolvePackById, resolveRichContent } from './state/content-resolver';
 import { dedupeSuggestions, generateNodeSuggestions } from './state/skill-tree-agent';
+import type { CoursePackageConfig } from './types/course-package';
 
 // Legacy export retained for existing prototype files that still import this type.
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
@@ -45,98 +47,544 @@ const EMPTY_NODES: SessionNode[] = [];
 const EMPTY_SESSIONS: Record<string, AnySessionRecord> = {};
 const EMPTY_SUGGESTIONS: AgentNodeSuggestion[] = [];
 
-
-const REACT_HOOKS_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
+const DATA_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   {
-    id: 'skill-useState',
-    title: 'useState',
-    description: 'Local state management — the foundation of interactivity',
+    id: 'skill-sql-foundations',
+    title: 'SQL Foundations',
+    description: 'Filtering, grouping, joins, and query accuracy fundamentals',
     status: 'available',
     dependsOn: [],
     col: 0,
-    estimatedMinutes: 30,
+    estimatedMinutes: 40,
   },
   {
-    id: 'skill-useEffect',
-    title: 'useEffect',
-    description: 'Side effects, data fetching, and the cleanup pattern',
+    id: 'skill-sql-analytics',
+    title: 'Analytical SQL',
+    description: 'CTEs, window functions, cohort and retention style queries',
     status: 'locked',
-    dependsOn: ['skill-useState'],
+    dependsOn: ['skill-sql-foundations'],
     col: 1,
+    estimatedMinutes: 55,
+  },
+  {
+    id: 'skill-metrics-funnels',
+    title: 'Metrics and Funnels',
+    description: 'North-star metric design, funnel breakdowns, and root-cause checks',
+    status: 'locked',
+    dependsOn: ['skill-sql-analytics'],
+    col: 2,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-dashboard-storytelling',
+    title: 'Dashboard Storytelling',
+    description: 'Build decision-ready dashboards and communicate insights clearly',
+    status: 'locked',
+    dependsOn: ['skill-metrics-funnels'],
+    col: 3,
     estimatedMinutes: 45,
   },
   {
-    id: 'skill-useContext',
-    title: 'useContext',
-    description: 'Consuming context without prop drilling',
+    id: 'skill-ab-testing',
+    title: 'A/B Testing Basics',
+    description: 'Hypothesis setup, guardrails, and experiment readout interpretation',
     status: 'locked',
-    dependsOn: ['skill-useEffect'],
+    dependsOn: ['skill-dashboard-storytelling'],
+    col: 4,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-interview-case',
+    title: 'Interview Case Simulation',
+    description: 'End-to-end case practice from business question to recommendation',
+    status: 'locked',
+    dependsOn: ['skill-ab-testing'],
+    col: 5,
+    estimatedMinutes: 60,
+  },
+];
+
+const PRODUCT_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
+  {
+    id: 'skill-product-metrics',
+    title: 'Product Metrics Foundations',
+    description: 'North-star metrics, guardrails, and metric tree decomposition',
+    status: 'available',
+    dependsOn: [],
+    col: 0,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-event-instrumentation',
+    title: 'Event Instrumentation Basics',
+    description: 'Design event schema and validate analytics tracking quality',
+    status: 'locked',
+    dependsOn: ['skill-product-metrics'],
+    col: 1,
+    estimatedMinutes: 40,
+  },
+  {
+    id: 'skill-funnel-retention',
+    title: 'Funnel and Retention Analysis',
+    description: 'Activation, retention cohorts, and behavioral segment diagnosis',
+    status: 'locked',
+    dependsOn: ['skill-event-instrumentation'],
     col: 2,
+    estimatedMinutes: 45,
+  },
+  {
+    id: 'skill-experiment-readout',
+    title: 'Experiment Readout',
+    description: 'Read A/B test outputs and convert them into product decisions',
+    status: 'locked',
+    dependsOn: ['skill-funnel-retention'],
+    col: 3,
+    estimatedMinutes: 40,
+  },
+  {
+    id: 'skill-product-storytelling',
+    title: 'Product Narrative Storytelling',
+    description: 'Communicate findings with concise business narratives',
+    status: 'locked',
+    dependsOn: ['skill-experiment-readout'],
+    col: 4,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-pm-case-sim',
+    title: 'Product Analytics Case Simulation',
+    description: 'End-to-end product case simulation under interview constraints',
+    status: 'locked',
+    dependsOn: ['skill-product-storytelling'],
+    col: 5,
+    estimatedMinutes: 60,
+  },
+];
+
+const CUSTOM_SESSION_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
+  {
+    id: 'skill-scope-goal',
+    title: 'Scope and Goal Definition',
+    description: 'Define the concrete learning goal, expected output, and constraints',
+    status: 'available',
+    dependsOn: [],
+    col: 0,
     estimatedMinutes: 25,
   },
   {
-    id: 'skill-useCallback',
-    title: 'useCallback',
-    description: 'Stable callback references to prevent unnecessary re-renders',
+    id: 'skill-foundation-map',
+    title: 'Foundation Mapping',
+    description: 'Identify prerequisites and current baseline gaps',
     status: 'locked',
-    dependsOn: ['skill-useContext'],
+    dependsOn: ['skill-scope-goal'],
+    col: 1,
+    estimatedMinutes: 30,
+  },
+  {
+    id: 'skill-practice-loop',
+    title: 'Practice Loop',
+    description: 'Run targeted practice sessions and strengthen weak areas',
+    status: 'locked',
+    dependsOn: ['skill-foundation-map'],
+    col: 2,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-application',
+    title: 'Applied Output',
+    description: 'Create a concrete output from what you learned',
+    status: 'locked',
+    dependsOn: ['skill-practice-loop'],
     col: 3,
-    estimatedMinutes: 20,
-  },
-  {
-    id: 'skill-useMemo',
-    title: 'useMemo',
-    description: 'Expensive computation memoization',
-    status: 'locked',
-    dependsOn: ['skill-useCallback'],
-    col: 4,
-    estimatedMinutes: 20,
-  },
-  {
-    id: 'skill-customHooks',
-    title: 'Custom Hooks',
-    description: 'Extracting reusable stateful logic into composable hooks',
-    status: 'locked',
-    dependsOn: ['skill-useMemo'],
-    col: 5,
     estimatedMinutes: 40,
   },
+  {
+    id: 'skill-review-retain',
+    title: 'Review and Retain',
+    description: 'Consolidate with review and reinforcement sessions',
+    status: 'locked',
+    dependsOn: ['skill-application'],
+    col: 4,
+    estimatedMinutes: 25,
+  },
 ];
+
+const CUSTOM_SESSION_SKILL_PACKS = [
+  {
+    id: 'skillpack-custom-coach',
+    name: 'Custom Learning Coach',
+    intent: 'Personalized tutoring',
+    instructions: 'Use learner-provided materials to explain clearly, ask focused follow-ups, and propose practical practice tasks.',
+    exampleInput: 'I uploaded notes about retention analysis. Help me understand cohort breakdown.',
+    exampleOutput: 'Let us break retention into week buckets, then validate with one SQL check and one narrative summary.',
+  },
+];
+
+const CUSTOM_SESSION_COMMANDS = [
+  {
+    id: 'cmd-custom-drill',
+    name: 'Practice Drill',
+    trigger: '/drill',
+    description: 'Generate a focused practice drill from current materials.',
+    skillPackId: 'skillpack-custom-coach',
+    defaultPrompt: 'Create a focused practice drill based on my uploaded materials.',
+    outputHint: 'Return a short task list and one self-check question.',
+    defaultContentPackId: 'memoization-decision-kit',
+    inputFields: [
+      {
+        id: 'focus',
+        label: 'What do you want to practice?',
+        placeholder: 'Example: cohort retention SQL',
+        required: true,
+        type: 'text' as const,
+      },
+    ],
+  },
+];
+
+const DATA_ANALYST_SKILL_PACKS = [
+  {
+    id: 'skillpack-sql-interview',
+    name: 'SQL Interview Coach',
+    intent: 'Interview SQL training',
+    instructions: 'Coach SQL interview answers with clear assumptions, query structure, and mistake prevention.',
+    exampleInput: 'How do I debug wrong weekly retention output?',
+    exampleOutput: 'First verify join direction, then validate date boundaries, then compare week-over-week with window functions.',
+  },
+  {
+    id: 'skillpack-dashboard-narrative',
+    name: 'Dashboard Narrative Coach',
+    intent: 'Business storytelling',
+    instructions: 'Turn metric outputs into concise business narratives with recommendation-first structure.',
+    exampleInput: 'My dashboard has many charts but no clear takeaway.',
+    exampleOutput: 'Lead with one decision, then support it with 2-3 metrics and one risk caveat.',
+  },
+];
+
+const DATA_ANALYST_COMMANDS = [
+  {
+    id: 'cmd-sql-drill',
+    name: 'SQL Drill',
+    trigger: '/sql-drill',
+    description: 'Generate an interview-style SQL drill.',
+    skillPackId: 'skillpack-sql-interview',
+    defaultPrompt: 'Run a SQL interview drill for this topic.',
+    outputHint: 'Return prompt, constraints, and expected validation checks.',
+    defaultContentPackId: 'stale-closure-debug-trace',
+    inputFields: [
+      {
+        id: 'level',
+        label: 'Difficulty',
+        placeholder: 'Easy / Medium / Hard',
+        required: true,
+        type: 'text' as const,
+      },
+      {
+        id: 'topic',
+        label: 'Target topic',
+        placeholder: 'Retention, joins, windows, or metrics',
+        required: false,
+        type: 'text' as const,
+      },
+    ],
+  },
+  {
+    id: 'cmd-case-brief',
+    name: 'Case Brief',
+    trigger: '/case-brief',
+    description: 'Create a concise case-answer structure.',
+    skillPackId: 'skillpack-dashboard-narrative',
+    defaultPrompt: 'Create a concise case brief with recommendation-first structure.',
+    outputHint: 'Return sections: context, insight, recommendation, risk.',
+    defaultContentPackId: 'custom-hook-blueprint',
+    inputFields: [
+      {
+        id: 'business-question',
+        label: 'Business question',
+        placeholder: 'What decision are you trying to make?',
+        required: true,
+        type: 'text' as const,
+      },
+    ],
+  },
+];
+
+const PRODUCT_ANALYST_SKILL_PACKS = [
+  {
+    id: 'skillpack-product-metrics',
+    name: 'Product Metrics Coach',
+    intent: 'Metrics decomposition',
+    instructions: 'Guide learners to decompose product goals into measurable trees and guardrails.',
+    exampleInput: 'How do I structure activation metrics?',
+    exampleOutput: 'Start with north-star outcome, then define activation events and guardrails by stage.',
+  },
+  {
+    id: 'skillpack-experiment-readout',
+    name: 'Experiment Readout Coach',
+    intent: 'A/B decision support',
+    instructions: 'Explain experiment outcomes in product decision language with confidence boundaries.',
+    exampleInput: 'Variant B improved conversion but hurt retention.',
+    exampleOutput: 'Frame trade-off, quantify impact, then recommend rollout scope and follow-up test.',
+  },
+];
+
+const PRODUCT_ANALYST_COMMANDS = [
+  {
+    id: 'cmd-funnel-diagnose',
+    name: 'Funnel Diagnose',
+    trigger: '/funnel-diagnose',
+    description: 'Diagnose funnel drop-offs from product perspective.',
+    skillPackId: 'skillpack-product-metrics',
+    defaultPrompt: 'Diagnose this funnel and identify top drop-off causes.',
+    outputHint: 'Return stage-by-stage diagnosis and next instrumentation check.',
+    defaultContentPackId: 'render-waterfall-diagnosis',
+    inputFields: [
+      {
+        id: 'funnel-name',
+        label: 'Funnel name',
+        placeholder: 'Example: onboarding activation funnel',
+        required: true,
+        type: 'text' as const,
+      },
+    ],
+  },
+  {
+    id: 'cmd-exp-readout',
+    name: 'Experiment Readout',
+    trigger: '/exp-readout',
+    description: 'Generate a decision-ready experiment readout.',
+    skillPackId: 'skillpack-experiment-readout',
+    defaultPrompt: 'Create a decision-ready experiment readout.',
+    outputHint: 'Return summary, trade-off, recommendation, and risk.',
+    defaultContentPackId: 'effect-dependency-timeline',
+    inputFields: [
+      {
+        id: 'experiment-link',
+        label: 'Experiment doc or link',
+        placeholder: 'Paste experiment summary URL or note',
+        required: false,
+        type: 'url' as const,
+      },
+    ],
+  },
+];
+
+const COURSE_PACKAGES: CoursePackageConfig[] = [
+  {
+    id: 'pkg-custom-self-directed',
+    title: 'Custom Self-Directed Session',
+    subtitle: 'Bring your own materials and goals',
+    defaultSessionTitle: 'Custom Learning Session',
+    discoverable: false,
+    intakeTitle: 'Create your own learning session',
+    intakeDescription:
+      'Upload your materials and learning goal. LearnAgent will build a personalized path.',
+    creatorPrompt:
+      'This is a custom mode for self-directed sessions using your own materials.',
+    intakeFields: [
+      {
+        id: 'learning-material',
+        label: 'Learning Material File',
+        description: 'Upload one file to anchor this session (PDF, DOC, DOCX).',
+        type: 'file',
+        required: true,
+        accept: '.pdf,.doc,.docx',
+        sampleValue: 'sample-custom-learning-notes.pdf',
+      },
+      {
+        id: 'learning-goal',
+        label: 'Learning Goal',
+        description: 'Describe what you want to be able to do after this session.',
+        type: 'text',
+        required: true,
+        placeholder: 'I want to understand cohort retention analysis and explain it clearly',
+        sampleValue: 'I want to explain retention analysis with confidence in interviews',
+      },
+    ],
+    skillNodes: CUSTOM_SESSION_SKILL_NODES,
+    skillPacks: CUSTOM_SESSION_SKILL_PACKS,
+    commands: CUSTOM_SESSION_COMMANDS,
+    runtimePolicy: {
+      systemPrompt: 'You are a personalized tutor that uses learner materials to create practical progress.',
+      guardrails: 'Do not fabricate source facts. Ask clarifying questions if user input is insufficient.',
+    },
+    suggestedActions: [
+      { label: 'Create a focused drill', prompt: '/drill focus="core weakness"' },
+      { label: 'Explain with one analogy', prompt: 'Explain this with one practical analogy' },
+    ],
+    source: 'seed',
+  },
+  {
+    id: 'pkg-data-analyst-job-sprint',
+    title: 'Data Analyst Job Sprint',
+    subtitle: 'SQL + BI + interview execution',
+    defaultSessionTitle: 'Data Analyst Job Sprint Session',
+    intakeTitle: 'Prepare your personalized Data Analyst sprint',
+    intakeDescription:
+      'Provide the requested materials so LearnAgent can tailor your path.',
+    creatorPrompt:
+      'Please upload your resume and one project link for personalized interview coaching.',
+    intakeFields: [
+      {
+        id: 'resume',
+        label: 'Resume',
+        description: 'Upload your latest resume (PDF, DOC, DOCX).',
+        type: 'file',
+        required: true,
+        accept: '.pdf,.doc,.docx',
+        sampleValue: 'sample-data-analyst-resume.pdf',
+      },
+      {
+        id: 'github',
+        label: 'Project GitHub URL',
+        description: 'Share one repository that represents your strongest analysis project.',
+        type: 'url',
+        required: true,
+        placeholder: 'https://github.com/username/project',
+        sampleValue: 'https://github.com/learner/retention-dashboard-case',
+      },
+      {
+        id: 'target-role',
+        label: 'Target Role',
+        description: 'Optional: include the target company/role to adapt interview language.',
+        type: 'text',
+        required: false,
+        placeholder: 'Data Analyst Intern at a B2C tech company',
+        sampleValue: 'Product Data Analyst at a B2C consumer app',
+      },
+    ],
+    skillNodes: DATA_ANALYST_SKILL_NODES,
+    skillPacks: DATA_ANALYST_SKILL_PACKS,
+    commands: DATA_ANALYST_COMMANDS,
+    runtimePolicy: {
+      systemPrompt: 'You are a data analyst interview coach focused on SQL rigor and business storytelling.',
+      guardrails: 'Prioritize correctness and explicit assumptions before recommendations.',
+    },
+    suggestedActions: [
+      { label: 'Run SQL drill', prompt: '/sql-drill level="Medium" topic="retention"' },
+      { label: 'Create case brief', prompt: '/case-brief business-question="Why did conversion drop?"' },
+    ],
+    source: 'seed',
+  },
+  {
+    id: 'pkg-product-analyst-growth-sprint',
+    title: 'Product Analyst Growth Sprint',
+    subtitle: 'Product metrics + experimentation + storytelling',
+    defaultSessionTitle: 'Product Analyst Growth Sprint Session',
+    intakeTitle: 'Prepare your personalized Product Analyst sprint',
+    intakeDescription:
+      'Share product materials so LearnAgent can personalize analysis and experiment sessions.',
+    creatorPrompt:
+      'Please upload one product brief and one dashboard link for package-specific coaching.',
+    intakeFields: [
+      {
+        id: 'product-brief',
+        label: 'Product Brief File',
+        description: 'Upload a PRD or product brief (PDF, DOC, DOCX).',
+        type: 'file',
+        required: true,
+        accept: '.pdf,.doc,.docx',
+        sampleValue: 'sample-product-brief.pdf',
+      },
+      {
+        id: 'dashboard-link',
+        label: 'Dashboard URL',
+        description: 'Share one analytics dashboard link you want to improve.',
+        type: 'url',
+        required: true,
+        placeholder: 'https://analytics.company.com/dashboard/123',
+        sampleValue: 'https://analytics.company.com/dashboard/growth-retention',
+      },
+      {
+        id: 'focus-question',
+        label: 'Focus Question',
+        description: 'Optional: describe one product problem you want to solve.',
+        type: 'text',
+        required: false,
+        placeholder: 'How can we improve onboarding conversion in week 1?',
+        sampleValue: 'How can we improve activation in the first 3 days?',
+      },
+    ],
+    skillNodes: PRODUCT_ANALYST_SKILL_NODES,
+    skillPacks: PRODUCT_ANALYST_SKILL_PACKS,
+    commands: PRODUCT_ANALYST_COMMANDS,
+    runtimePolicy: {
+      systemPrompt: 'You are a product analytics coach focused on metric trees, instrumentation, and experiments.',
+      guardrails: 'Always connect metric changes to product decisions and state uncertainty clearly.',
+    },
+    suggestedActions: [
+      { label: 'Diagnose funnel', prompt: '/funnel-diagnose funnel-name="onboarding activation"' },
+      { label: 'Generate experiment readout', prompt: '/exp-readout experiment-link="https://example.com/exp-42"' },
+    ],
+    source: 'seed',
+  },
+];
+
+const DEFAULT_COURSE_PACKAGE_ID = 'pkg-data-analyst-job-sprint';
+
+function getCoursePackageById(packages: CoursePackageConfig[], id: string): CoursePackageConfig {
+  return packages.find((item) => item.id === id) ?? packages[0];
+}
+
+function summarizeIntakeForPlanning(coursePackage: CoursePackageConfig, intake: Record<string, string>): string {
+  const collected = coursePackage.intakeFields
+    .map((field) => {
+      const value = intake[field.id]?.trim();
+      if (!value) {
+        return null;
+      }
+      return `${field.label}: ${value}`;
+    })
+    .filter((item): item is string => Boolean(item));
+
+  if (collected.length === 0) {
+    return 'No learner materials were provided yet. Continue with a default profile.';
+  }
+
+  return `Learner materials received:\n- ${collected.join('\n- ')}`;
+}
+
 
 function createTimestamp(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function planningSeedMessage(): ChatMessage {
+function planningSeedMessage(coursePackage: CoursePackageConfig, intakeSummary: string): ChatMessage {
+
   return {
     id: 'seed-1',
     role: 'assistant',
     content:
-      "Let me build your personalized React Hooks learning plan. I'll work through 5 planning phases — you'll see my reasoning here as I go.",
+      `Let me build your personalized ${coursePackage.title} plan.\n\n${intakeSummary}\n\nI will now walk through 5 planning phases so you can see exactly how the path is generated.`,
     timestamp: '09:00',
   };
 }
 
 const PLANNING_STEP_USER_MESSAGES: Record<string, string> = {
-  purpose: 'Goal: be able to build production React apps',
-  baseline: 'Baseline: I know JavaScript but never used Hooks',
-  research: 'Timeline: comfortable in 4 weeks',
+  purpose: 'Goal: become interview-ready for this package',
+  baseline: 'Baseline: I have partial foundations and need structured improvement',
+  research: 'Timeline: comfortable in 8 weeks',
   milestones: 'Please draft a milestone roadmap for me',
   report: 'Looks good — finalize the plan',
 };
 
-const PLANNING_STEP_MESSAGES: Record<string, string> = {
-  purpose:
-    "Got it. Your goal is clear: build production-ready React applications with confidence. I've noted your target outcome and will anchor the entire learning plan around shipping real, working code — not just understanding concepts in isolation.",
-  baseline:
-    "Assessment complete. You're comfortable with JavaScript but haven't used React Hooks yet. This puts you in a strong starting position — no need to revisit JS fundamentals. I'll start the plan at useState and build progressively, skipping content that would be redundant for your level.",
-  research:
-    "References gathered. I've pulled the React team's official documentation, the most-cited community patterns for hooks, and three production codebases that demonstrate idiomatic hook usage. The plan will draw from these to ensure you're learning current best practices, not outdated patterns.",
-  milestones:
-    "Milestone draft ready. I've structured 4 weekly checkpoints with clear dependencies:\n\n→ Week 1: useState + useEffect (foundation)\n→ Week 2: useContext (shared state)\n→ Week 3: useCallback + useMemo (performance)\n→ Week 4: Custom Hooks (composition)\n\nEach milestone has a hands-on project to confirm understanding before unlocking the next.",
-  report:
-    "Learning plan finalized. I've produced a complete personalized curriculum with 6 skill nodes, estimated time per topic, and unlock dependencies. The skill tree is ready — click 'Start Learning' to begin with useState, which unlocks everything else.",
-};
+function buildPlanningStepMessages(coursePackage: CoursePackageConfig): Record<string, string> {
+  const [firstNode, secondNode, thirdNode] = coursePackage.skillNodes;
+  const lastNode = coursePackage.skillNodes[coursePackage.skillNodes.length - 1];
+
+  return {
+    purpose:
+      `Got it. Your target is ${coursePackage.title}. I will optimize this plan for practical interview performance and output quality for this package.`,
+    baseline:
+      `Baseline assessed. I will accelerate fundamentals where possible and focus on your highest-impact gaps for ${coursePackage.title}.`,
+    research:
+      `References gathered. I selected realistic interview scenarios and package-specific practice prompts so this stays execution-oriented instead of theory-heavy.`,
+    milestones:
+      `Milestone draft ready. I structured an 8-week path with dependency gates:\n\n→ Weeks 1-2: ${firstNode?.title ?? 'Core Foundation'} + ${secondNode?.title ?? 'Applied Skills'}\n→ Weeks 3-4: ${thirdNode?.title ?? 'Intermediate Progression'}\n→ Weeks 5-8: Advanced practice ending with ${lastNode?.title ?? 'Case Simulation'}\n\nEach stage includes practice, mastery checks, and review tasks.`,
+    report:
+      `Learning plan finalized. I generated a personalized ${coursePackage.skillNodes.length}-node skill tree with unlock dependencies, mastery checkpoints, and review scheduling. Start with ${firstNode?.title ?? 'the first node'} to unlock the rest of the sprint.`,
+  };
+}
 
 function buildPlanningState(): PlanningState {
   return {
@@ -176,18 +624,18 @@ function buildPlanningState(): PlanningState {
   };
 }
 
-function generateLearningReport(): LearningPlanReport {
+function generateLearningReport(coursePackage: CoursePackageConfig): LearningPlanReport {
+  const milestones = coursePackage.skillNodes.map((node, index) => {
+    const weekLabel = index < 2 ? `Weeks ${index + 1}-${index + 2}` : `Week ${index + 2}`;
+    return `${weekLabel}: ${node.title}`;
+  });
+
   return {
-    goal: 'Build production-ready React applications using the complete Hooks API with confidence.',
-    currentLevel: 'JavaScript-comfortable, new to React Hooks and functional component patterns.',
-    milestones: [
-      'Week 1: useState + useEffect — local state and side effects',
-      'Week 2: useContext — shared state without prop drilling',
-      'Week 3: useCallback + useMemo — performance optimization',
-      'Week 4: Custom Hooks — reusable stateful logic',
-    ],
-    weeklyCadence: '3 focused sessions/week (60 min) + one hands-on project session',
-    outcomeSignal: 'Can build a multi-page React app with data fetching, shared state, and custom hooks',
+    goal: `Become interview-ready for ${coursePackage.title} through a structured 8-week sprint.`,
+    currentLevel: 'Learner baseline captured from uploaded materials and optional context fields.',
+    milestones,
+    weeklyCadence: '4 focused sessions/week (45-60 min) + one case rehearsal block',
+    outcomeSignal: `Can complete ${coursePackage.title} case drills with clear, defensible recommendations`,
   };
 }
 
@@ -214,12 +662,12 @@ function branchPromptProfile(intent: BranchIntent): string {
 }
 
 function topicIntroFor(title: string, description: string): string {
-  return `Let's dive into **${title}** — ${description}\n\nThe code panel on the left shows the basic pattern. Ask me anything, request a quiz, or a comparison.`;
+  return `Let's dive into **${title}** — ${description}\n\nUse Ask, Explain, Compare, and Practice sessions to build mastery. I will also propose review tasks when this node needs reinforcement.`;
 }
 
 function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: BranchIntent): string {
   if (kind === 'topic') {
-    return `Good question. Here's what you need to know about "${message}". Try asking for a lifecycle map, a debug trace, or a tradeoff matrix.`;
+    return `Good question. Here's what matters for "${message}" in a data analyst workflow. You can ask for a breakdown, comparison table, practice prompt, or review drill.`;
   }
   if (kind === 'branch' && intent === 'ask') {
     return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;
@@ -236,9 +684,45 @@ function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: 
   return 'I can answer directly, or you can highlight any phrase in my response to branch into Ask/Explain sessions.';
 }
 
+function findCommand(coursePackage: CoursePackageConfig, input: string) {
+  const normalized = input.trim().toLowerCase();
+  const token = normalized.split(/\s+/)[0] ?? normalized;
+  return coursePackage.commands.find((command) => token === command.trigger.toLowerCase());
+}
+
+function buildSkillDrivenReply(
+  coursePackage: CoursePackageConfig,
+  commandTrigger: string,
+  userInput: string,
+): string {
+  const command = coursePackage.commands.find((item) => item.trigger === commandTrigger);
+  if (!command) {
+    return 'Command was not found in this package.';
+  }
+
+  const argsText = userInput.slice(commandTrigger.length).trim();
+  const hasArgs = Boolean(argsText);
+
+  return [
+    `Command executed: ${command.name}`,
+    `Trigger: ${command.trigger}`,
+    '',
+    hasArgs
+      ? `Received input: ${argsText}`
+      : 'No additional input was provided. Running with package defaults.',
+    'Generating response using creator-defined package logic.',
+    '',
+    command.outputHint
+      ? `Output style: ${command.outputHint}`
+      : 'Output style: actionable guidance with next steps.',
+  ].join('\n');
+}
+
 interface WorkspaceState {
   id: string;
   title: string;
+  coursePackageId: string;
+  origin: 'custom' | 'package';
   createdAt: number;
   updatedAt: number;
   leftTab: 'skill-tree' | 'content';
@@ -248,6 +732,7 @@ interface WorkspaceState {
   nodes: SessionNode[];
   sessions: Record<string, AnySessionRecord>;
   activeSessionId: string;
+  learnerIntake: Record<string, string>;
 }
 
 function createMainSessionRecord(): MainSessionRecord {
@@ -263,11 +748,18 @@ function createMainSessionRecord(): MainSessionRecord {
   };
 }
 
-function createWorkspace(id: string, title: string): WorkspaceState {
+function createWorkspace(
+  id: string,
+  title: string,
+  coursePackage: CoursePackageConfig,
+  origin: 'custom' | 'package' = 'package',
+): WorkspaceState {
   const now = Date.now();
   return {
     id,
     title,
+    coursePackageId: coursePackage.id,
+    origin,
     createdAt: now,
     updatedAt: now,
     leftTab: 'skill-tree',
@@ -281,7 +773,7 @@ function createWorkspace(id: string, title: string): WorkspaceState {
     nodes: [
       {
         id: MAIN_SESSION_ID,
-        title: 'React Hooks • Learning Session',
+        title: `${coursePackage.title} • Learning Session`,
         kind: 'main',
         status: 'active',
         parentId: null,
@@ -293,6 +785,7 @@ function createWorkspace(id: string, title: string): WorkspaceState {
       [MAIN_SESSION_ID]: createMainSessionRecord(),
     },
     activeSessionId: MAIN_SESSION_ID,
+    learnerIntake: {},
   };
 }
 
@@ -304,12 +797,22 @@ function App() {
   const reducedMotion = useReducedMotion() ?? false;
   const idCounter = useRef(1);
   const workspaceCounter = useRef(2);
+  const timelineCounter = useRef(1);
   const nextId = (prefix: string) => `${prefix}-${idCounter.current++}`;
   const nextWorkspaceId = () => `workspace-${workspaceCounter.current++}`;
+  const nextTimeline = () => timelineCounter.current++;
+  const [publishedPackages, setPublishedPackages] = useState<CoursePackageConfig[]>([]);
+  const [creatorStudioOpen, setCreatorStudioOpen] = useState(false);
 
-  const [workspaces, setWorkspaces] = useState<WorkspaceState[]>(() => [
-    createWorkspace('workspace-1', 'React Hooks Starter Session'),
-  ]);
+  const allCoursePackages = useMemo(
+    () => [...COURSE_PACKAGES, ...publishedPackages],
+    [publishedPackages],
+  );
+
+  const [workspaces, setWorkspaces] = useState<WorkspaceState[]>(() => {
+    const defaultPackage = getCoursePackageById(COURSE_PACKAGES, DEFAULT_COURSE_PACKAGE_ID);
+    return [createWorkspace('workspace-1', defaultPackage.defaultSessionTitle, defaultPackage, 'package')];
+  });
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
   const activeWorkspace = useMemo(() => {
@@ -408,6 +911,11 @@ function App() {
   const nodes = workspaceState?.nodes ?? EMPTY_NODES;
   const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
   const agentSuggestionsBySession = workspaceState?.agentSuggestionsBySession ?? {};
+  const learnerIntake = workspaceState?.learnerIntake ?? {};
+  const activeCoursePackage = getCoursePackageById(
+    allCoursePackages,
+    workspaceState?.coursePackageId ?? DEFAULT_COURSE_PACKAGE_ID,
+  );
   const activeSessionId = workspaceState?.activeSessionId ?? MAIN_SESSION_ID;
   const activeRichBlocks = richBlocksBySession[activeSessionId] ?? EMPTY_RICH_BLOCKS;
   const activeSuggestions = agentSuggestionsBySession[activeSessionId] ?? EMPTY_SUGGESTIONS;
@@ -422,6 +930,42 @@ function App() {
 
   const activeNode = nodeMap.get(activeSessionId) ?? nodes[0];
   const activeSession = sessions[activeSessionId] ?? sessions[MAIN_SESSION_ID];
+
+  const inferredFallbackRichBlocks = useMemo(() => {
+    if (!activeSession || !activeNode || activeRichBlocks.length > 0) {
+      return EMPTY_RICH_BLOCKS;
+    }
+
+    let inferredPackId: string | null = null;
+    const explicitPattern = /@content:([a-z0-9-]+)/i;
+
+    for (let i = activeSession.messages.length - 1; i >= 0; i -= 1) {
+      const content = activeSession.messages[i]?.content ?? '';
+      const explicitMatch = explicitPattern.exec(content);
+      if (explicitMatch?.[1]) {
+        inferredPackId = explicitMatch[1];
+        break;
+      }
+
+      const labelMatch = Object.entries(CONTENT_PACK_LABELS).find(([, label]) => label === content.trim());
+      if (labelMatch) {
+        inferredPackId = labelMatch[0];
+        break;
+      }
+    }
+
+    if (!inferredPackId && activeNode.kind === 'topic') {
+      inferredPackId = TOPIC_DEFAULT_PACKS[activeNode.title]?.[0] ?? null;
+    }
+
+    if (!inferredPackId) {
+      return EMPTY_RICH_BLOCKS;
+    }
+
+    return resolvePackById(inferredPackId) ?? EMPTY_RICH_BLOCKS;
+  }, [activeNode, activeRichBlocks, activeSession]);
+
+  const visibleRichBlocks = activeRichBlocks.length > 0 ? activeRichBlocks : inferredFallbackRichBlocks;
 
 
   const activePath = useMemo(() => {
@@ -442,20 +986,50 @@ function App() {
   const pageVariants = staggerContainer(reducedMotion, 0.09, 0.03);
   const pageItemVariants = fadeSlideY(reducedMotion, 10, MOTION_DURATION.slow);
 
-  const workspaceSummaries = useMemo(() => {
+  const customWorkspaceSummaries = useMemo(() => {
     return workspaces.map((workspace) => {
+      const pack = getCoursePackageById(allCoursePackages, workspace.coursePackageId);
       return {
         id: workspace.id,
         title: workspace.title,
+        packageTitle: pack.title,
+        origin: workspace.origin,
         lastVisitedAt: workspace.updatedAt,
       };
-    });
-  }, [workspaces]);
+    }).filter((workspace) => workspace.origin === 'custom');
+  }, [allCoursePackages, workspaces]);
 
-  const handleCreateWorkspace = (title?: string) => {
+  const coursePackageOptions = useMemo(
+    () => allCoursePackages
+      .filter((item) => item.discoverable !== false)
+      .map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle })),
+    [allCoursePackages],
+  );
+
+  const handleCreateCustomWorkspace = (title?: string) => {
+    const selectedPackage = getCoursePackageById(allCoursePackages, 'pkg-custom-self-directed');
     const workspaceId = nextWorkspaceId();
-    const fallbackTitle = `React Hooks Session ${workspaceCounter.current - 1}`;
-    const nextWorkspace = createWorkspace(workspaceId, title?.trim() || fallbackTitle);
+    const fallbackTitle = title?.trim() || `Custom Session ${workspaceCounter.current - 1}`;
+    const nextWorkspace = createWorkspace(
+      workspaceId,
+      fallbackTitle,
+      selectedPackage,
+      'custom',
+    );
+
+    setWorkspaces((prev) => [nextWorkspace, ...prev]);
+    setActiveWorkspaceId(workspaceId);
+  };
+
+  const handleStartPackageSession = (coursePackageId: string) => {
+    const selectedPackage = getCoursePackageById(allCoursePackages, coursePackageId);
+    const workspaceId = nextWorkspaceId();
+    const nextWorkspace = createWorkspace(
+      workspaceId,
+      selectedPackage.defaultSessionTitle,
+      selectedPackage,
+      'package',
+    );
 
     setWorkspaces((prev) => [nextWorkspace, ...prev]);
     setActiveWorkspaceId(workspaceId);
@@ -476,10 +1050,28 @@ function App() {
     setActiveWorkspaceId(null);
   };
 
+  const handlePublishCreatorPackage = (coursePackage: Omit<CoursePackageConfig, 'id'>) => {
+    const packageId = nextId('pkg-creator');
+    setPublishedPackages((prev) => [
+      ...prev,
+      {
+        ...coursePackage,
+        id: packageId,
+        source: 'creator',
+        suggestedActions: [
+          { label: 'Run first command', prompt: coursePackage.commands[0]?.trigger ?? '/help' },
+        ],
+      },
+    ]);
+    setCreatorStudioOpen(false);
+  };
+
   const handleStartPlanning = () => {
     if (!activeWorkspaceId) {
       return;
     }
+
+    const intakeSummary = summarizeIntakeForPlanning(activeCoursePackage, learnerIntake);
 
     setSessions((prev) => {
       const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
@@ -493,10 +1085,53 @@ function App() {
           ...mainSession,
           phase: 'planning',
           planning: buildPlanningState(),
-          messages: [planningSeedMessage()],
+          messages: [planningSeedMessage(activeCoursePackage, intakeSummary)],
         },
       };
     });
+  };
+
+  const handleIntakeFileUpload = (fieldId: string, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      learnerIntake: {
+        ...workspace.learnerIntake,
+        [fieldId]: file.name,
+      },
+    }));
+
+    event.target.value = '';
+  };
+
+  const handleFillSampleIntake = () => {
+    const sampleEntries = Object.fromEntries(
+      activeCoursePackage.intakeFields
+        .filter((field) => field.sampleValue)
+        .map((field) => [field.id, field.sampleValue ?? '']),
+    );
+
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      learnerIntake: {
+        ...workspace.learnerIntake,
+        ...sampleEntries,
+      },
+    }));
+  };
+
+  const handleIntakeTextChange = (fieldId: string, value: string) => {
+    updateActiveWorkspace((workspace) => ({
+      ...workspace,
+      learnerIntake: {
+        ...workspace.learnerIntake,
+        [fieldId]: value,
+      },
+    }));
   };
 
   const changeLeftTab = (nextTab: 'skill-tree' | 'content') => {
@@ -582,7 +1217,7 @@ function App() {
       status: 'active',
       parentId,
       depth: parent.depth + 1,
-      createdAt: Date.now(),
+      createdAt: nextTimeline(),
       rank,
       originText,
       skillNodeId,
@@ -653,6 +1288,25 @@ function App() {
       content: options?.displayMessage ?? rawMessage,
     });
 
+    const matchedCommand = findCommand(activeCoursePackage, rawMessage);
+    if (matchedCommand) {
+      appendMessage(activeSessionId, {
+        role: 'system',
+        content: `Executing command ${matchedCommand.trigger}...`,
+      });
+      const commandReply = buildSkillDrivenReply(activeCoursePackage, matchedCommand.trigger, rawMessage);
+      appendMessage(activeSessionId, { role: 'assistant', content: commandReply });
+
+      if (matchedCommand.defaultContentPackId) {
+        const commandBlocks = resolvePackById(matchedCommand.defaultContentPackId);
+        if (commandBlocks) {
+          setSessionRichBlocks(activeSessionId, commandBlocks);
+          changeLeftTab('content');
+        }
+      }
+      return;
+    }
+
     const contentResult = resolveRichContent({
       sessionKind: activeNode.kind,
       message: rawMessage,
@@ -671,7 +1325,7 @@ function App() {
       userMessage: rawMessage,
       assistantMessage: assistantText,
       siblingNodes: nodes,
-      now: Date.now(),
+      now: nextTimeline(),
     });
     setAgentSuggestionsBySession(activeSessionId, (prev) => dedupeSuggestions(prev, suggestions));
 
@@ -794,7 +1448,8 @@ function App() {
       appendMessage(activeSessionId, { role: 'user', content: userMessage });
     }
 
-    const narrativeContent = PLANNING_STEP_MESSAGES[completingStep.id];
+    const planningStepMessages = buildPlanningStepMessages(activeCoursePackage);
+    const narrativeContent = planningStepMessages[completingStep.id];
     if (narrativeContent) {
       appendMessage(activeSessionId, { role: 'assistant', content: narrativeContent });
     }
@@ -811,7 +1466,7 @@ function App() {
 
       const doneCount = updatedSteps.filter((s) => s.state === 'done').length;
       const isFinished = doneCount === updatedSteps.length;
-      const report = isFinished ? generateLearningReport() : null;
+      const report = isFinished ? generateLearningReport(activeCoursePackage) : null;
 
       return {
         ...prev,
@@ -834,7 +1489,7 @@ function App() {
       return;
     }
 
-    const skillNodes: SkillNode[] = initializeSkillNodes(REACT_HOOKS_SKILL_NODES);
+    const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
 
     setSessions((prev) => {
       const session = prev[MAIN_SESSION_ID] as MainSessionRecord;
@@ -933,6 +1588,9 @@ function App() {
   const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
   const mainSkillNodes = mainSession?.skillNodes ?? [];
   const mainPhase: MainSessionPhase = mainSession?.phase ?? 'planning';
+  const isIntakeReady = activeCoursePackage.intakeFields
+    .filter((field) => field.required)
+    .every((field) => Boolean(learnerIntake[field.id]?.trim()));
   const activeSkillNodeId = activeNode?.skillNodeId;
   const activeSkillStatus: SkillNodeStatus | null = activeSkillNodeId
     ? mainSkillNodes.find((node) => node.id === activeSkillNodeId)?.status ?? null
@@ -955,11 +1613,23 @@ function App() {
   };
 
   if (!activeWorkspaceId || !activeWorkspace || !activeNode || !activeSession) {
+    if (creatorStudioOpen) {
+      return (
+        <CreatorBuilderPage
+          onBack={() => setCreatorStudioOpen(false)}
+          onPublish={handlePublishCreatorPackage}
+        />
+      );
+    }
+
     return (
       <WelcomePage
-        sessions={workspaceSummaries}
+        sessions={customWorkspaceSummaries}
+        coursePackages={coursePackageOptions}
         onOpenSession={handleOpenWorkspace}
-        onCreateSession={handleCreateWorkspace}
+        onCreateCustomSession={handleCreateCustomWorkspace}
+        onStartPackageSession={handleStartPackageSession}
+        onOpenCreatorStudio={() => setCreatorStudioOpen(true)}
       />
     );
   }
@@ -979,7 +1649,8 @@ function App() {
                 <Sparkles className="h-4 w-4 text-teal-600" />
                 LearnAgent Prototype
               </p>
-              <p className="mt-1 text-xs text-slate-500">{activeWorkspace.title}</p>
+              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
+              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
             </div>
             <motion.button
               type="button"
@@ -998,22 +1669,77 @@ function App() {
           className="mt-4 flex min-h-[calc(100vh-7.5rem)] items-center justify-center"
           variants={pageItemVariants}
         >
-          <div className="panel-surface w-full max-w-xl px-6 py-8 text-center sm:px-8">
-            <p className="font-heading text-xl font-semibold text-slate-900">Ready to plan your learning path?</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Start planning to generate your personalized React Hooks roadmap.
-            </p>
+          <div className="panel-surface w-full max-w-2xl px-6 py-8 text-center sm:px-8">
+            <p className="font-heading text-xl font-semibold text-slate-900">{activeCoursePackage.intakeTitle}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{activeCoursePackage.intakeDescription}</p>
+
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4 text-left">
+              <p className="text-base font-semibold text-slate-700">Creator Guidance</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-slate-600">{activeCoursePackage.creatorPrompt}</p>
+            </div>
+
+            <div className="mt-4 space-y-3 text-left">
+              {activeCoursePackage.intakeFields.map((field) => {
+                const currentValue = learnerIntake[field.id] ?? '';
+                return (
+                  <div key={field.id} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3">
+                    <p className="text-base font-semibold text-slate-700">
+                      {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
+                    </p>
+                    <p className="mt-1 text-[13px] text-slate-600">{field.description}</p>
+
+                    {field.type === 'file' ? (
+                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-300 hover:text-teal-700">
+                        Upload {field.label}
+                        <input
+                          type="file"
+                          accept={field.accept}
+                          onChange={(event) => handleIntakeFileUpload(field.id, event)}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <input
+                        type={field.type === 'url' ? 'url' : 'text'}
+                        value={currentValue}
+                        onChange={(event) => handleIntakeTextChange(field.id, event.target.value)}
+                        placeholder={field.placeholder}
+                        className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
+                      />
+                    )}
+
+                    <p className="mt-2 text-[13px] text-slate-600">
+                      {currentValue ? `Provided: ${currentValue}` : 'No input yet.'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={handleFillSampleIntake}
+                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+              >
+                Fill Sample Inputs
+              </button>
+            </div>
 
             <motion.button
               type="button"
               onClick={handleStartPlanning}
+              disabled={!isIntakeReady}
               whileHover={reducedMotion ? undefined : { y: -1 }}
               whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               transition={springFor(reducedMotion, 'snappy')}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              Plan
+              Generate Learning Plan
             </motion.button>
+            {!isIntakeReady ? (
+              <p className="mt-2 text-[13px] text-slate-600">Complete required fields to continue.</p>
+            ) : null}
           </div>
         </motion.main>
       </motion.div>
@@ -1030,12 +1756,13 @@ function App() {
       <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-              <Sparkles className="h-4 w-4 text-teal-600" />
-              LearnAgent Prototype
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{activeWorkspace.title}</p>
-          </div>
+              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                <Sparkles className="h-4 w-4 text-teal-600" />
+                LearnAgent Prototype
+              </p>
+              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
+              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
+            </div>
           <div className="flex items-center gap-2">
             <motion.button
               type="button"
@@ -1096,7 +1823,7 @@ function App() {
               </motion.button>
 
               <AnimatePresence initial={false}>
-                {(activeRichBlocks.length > 0 || leftTab === 'content') && (
+                {(visibleRichBlocks.length > 0 || leftTab === 'content') && (
                   <motion.button
                     key="content-tab"
                     type="button"
@@ -1161,7 +1888,7 @@ function App() {
                     exit="exit"
                   >
                     <RichContentPanel
-                      blocks={activeRichBlocks}
+                      blocks={visibleRichBlocks}
                       onCreateBranch={handleCreateBranch}
                     />
                   </motion.div>
@@ -1182,6 +1909,14 @@ function App() {
             mainPhase={mainPhase}
             activeSkillNodeId={activeSkillNodeId}
             activeSkillStatus={activeSkillStatus}
+            creatorCommands={activeCoursePackage.commands.map((command) => ({
+              id: command.id,
+              trigger: command.trigger,
+              name: command.name,
+              description: command.description,
+              inputFields: command.inputFields,
+            }))}
+            packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
             onSendMessage={handleSendMessage}
             onCreateBranch={handleCreateBranch}
             onAdvancePlanning={handleAdvancePlanning}

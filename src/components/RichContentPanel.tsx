@@ -145,10 +145,10 @@ function ComparisonTableView({ block }: { block: ComparisonTableBlock }) {
     >
       {block.title && (
         <motion.div className="border-b border-slate-100 px-4 py-3" variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}>
-          <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
         </motion.div>
       )}
-      <table className="w-full text-xs">
+      <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50">
             <th className="px-4 py-2.5 text-left font-semibold text-slate-500">Aspect</th>
@@ -195,7 +195,7 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
   return (
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <p className="font-heading text-sm font-semibold text-slate-900">{block.topic} - Flashcards</p>
+        <p className="font-heading text-base font-semibold text-slate-900">{block.topic} - Flashcards</p>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
           {index + 1} / {total}
         </span>
@@ -218,13 +218,13 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
                 className="group relative w-full cursor-pointer rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 text-left"
                 style={{ minHeight: 140 }}
               >
-                <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
                   {flipped ? 'Answer' : 'Question'}
                 </span>
                 <p className={`text-sm leading-relaxed ${flipped ? 'text-teal-800' : 'text-slate-800'}`}>
                   {flipped ? card.answer : card.question}
                 </p>
-                <p className="mt-3 text-[11px] text-slate-400 group-hover:text-slate-500">
+                <p className="mt-3 text-xs text-slate-500 group-hover:text-slate-600">
                   {flipped ? 'Click to see question' : 'Click to reveal answer'}
                 </p>
               </button>
@@ -241,7 +241,7 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
                   className="absolute inset-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6"
                   style={{ backfaceVisibility: 'hidden' }}
                 >
-                  <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
                     Question
                   </span>
                   <p className="text-sm leading-relaxed text-slate-800">{card.question}</p>
@@ -251,7 +251,7 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
                   className="absolute inset-0 rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
-                  <span className="mb-3 inline-block rounded-lg border border-teal-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-500">
+                  <span className="mb-3 inline-block rounded-lg border border-teal-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-teal-600">
                     Answer
                   </span>
                   <p className="text-sm leading-relaxed text-teal-800">{card.answer}</p>
@@ -315,43 +315,43 @@ function ConceptMapView({ block }: { block: ConceptMapBlock }) {
   return (
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
       </div>
 
       <div className="grid gap-3 p-4 md:grid-cols-3">
         <div className="rounded-xl border border-teal-200 bg-teal-50/70 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-teal-700">Core</p>
+          <p className="text-sm font-semibold text-teal-700">Core</p>
           <div className="mt-2 space-y-1.5">
             {grouped.core.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
             ))}
           </div>
         </div>
 
         <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Support</p>
+          <p className="text-sm font-semibold text-blue-700">Support</p>
           <div className="mt-2 space-y-1.5">
             {grouped.support.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
             ))}
           </div>
         </div>
 
         <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">Risk</p>
+          <p className="text-sm font-semibold text-rose-700">Risk</p>
           <div className="mt-2 space-y-1.5">
             {grouped.risk.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
             ))}
           </div>
         </div>
       </div>
 
       <div className="border-t border-slate-100 px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Connections</p>
+        <p className="text-sm font-semibold text-slate-700">Connections</p>
         <div className="mt-2 space-y-1.5">
           {block.edges.map((edge) => (
-            <p key={`${edge.from}-${edge.to}-${edge.label ?? ''}`} className="text-xs text-slate-600">
+            <p key={`${edge.from}-${edge.to}-${edge.label ?? ''}`} className="text-sm text-slate-600">
               <span className="font-semibold text-slate-800">{edge.from}</span>{' -> '}<span className="font-semibold text-slate-800">{edge.to}</span>
               {edge.label ? <span className="text-slate-500"> ({edge.label})</span> : null}
             </p>
@@ -368,7 +368,7 @@ function TimelineView({ block }: { block: TimelineBlock }) {
   return (
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
       </div>
       <div className="space-y-3 p-4">
         {block.steps.map((step, index) => {
@@ -408,7 +408,7 @@ function ChecklistView({ block }: { block: ChecklistBlock }) {
   return (
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
       </div>
       <div className="space-y-2.5 p-4">
         {block.items.map((item) => (
@@ -420,7 +420,7 @@ function ChecklistView({ block }: { block: ChecklistBlock }) {
                 <CircleDashed className="mt-0.5 h-4 w-4 text-slate-400" />
               )}
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-800">{item.label}</p>
+                <p className="text-sm font-semibold text-slate-800">{item.label}</p>
                 {item.note ? <p className="mt-1 text-[11px] text-slate-500">{item.note}</p> : null}
               </div>
             </div>
@@ -457,7 +457,7 @@ function CalloutStackView({ block }: { block: CalloutStackBlock }) {
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       {block.title ? (
         <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-          <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
         </div>
       ) : null}
       <div className="space-y-2.5 p-4">
@@ -468,8 +468,8 @@ function CalloutStackView({ block }: { block: CalloutStackBlock }) {
               <div className="flex items-start gap-2">
                 <span className="mt-0.5">{meta.icon}</span>
                 <div>
-                  <p className="text-xs font-semibold">{item.heading}</p>
-                  <p className="mt-1 text-xs opacity-90">{item.body}</p>
+                  <p className="text-sm font-semibold">{item.heading}</p>
+                  <p className="mt-1 text-sm opacity-90">{item.body}</p>
                 </div>
               </div>
             </div>
@@ -493,13 +493,13 @@ function MetricStripView({ block }: { block: MetricStripBlock }) {
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       {block.title ? (
         <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-          <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
         </div>
       ) : null}
       <div className="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {block.metrics.map((metric) => (
           <div key={metric.id} className={`rounded-xl border px-3 py-2.5 ${toneClass[metric.tone]}`}>
-            <p className="text-[11px] uppercase tracking-wide opacity-80">{metric.label}</p>
+            <p className="text-sm opacity-90">{metric.label}</p>
             <p className="mt-1 text-sm font-semibold">{metric.value}</p>
             {metric.delta ? <p className="mt-1 text-[11px] opacity-80">{metric.delta}</p> : null}
           </div>
@@ -522,14 +522,14 @@ function DebugTraceView({ block }: { block: DebugTraceBlock }) {
   return (
     <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-sm font-semibold text-slate-900">{block.title}</p>
+        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
       </div>
       <div className="space-y-2 p-4 font-mono text-xs">
         {block.events.map((event) => (
           <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold text-slate-800">{event.stage}</p>
-              <span className={`rounded-md border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${kindTone[event.kind]}`}>
+              <span className={`rounded-md border px-1.5 py-0.5 text-[11px] ${kindTone[event.kind]}`}>
                 {event.kind}
               </span>
             </div>

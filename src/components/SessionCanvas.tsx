@@ -326,10 +326,10 @@ export default function SessionCanvas({
     <motion.div className="flex h-full min-w-0 flex-col overflow-hidden" initial={false}>
       <motion.div className="border-b border-white/50 px-5 py-3" variants={fadeSlideY(reducedMotion, 8)}>
         <div className="flex items-center justify-between gap-3">
-          <p className="font-heading text-sm font-semibold text-slate-900">
-            {mainPhase === 'learning' ? 'React Hooks Skill Tree' : 'Learning Plan'}
-          </p>
-          <div className="rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-[11px] text-slate-500">
+            <p className="font-heading text-base font-semibold text-slate-900">
+              {mainPhase === 'learning' ? 'Data Analyst Skill Graph' : 'Learning Plan'}
+            </p>
+          <div className="rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-xs text-slate-600">
             {mainPhase === 'learning' ? (
               <div className="flex items-center gap-1.5">
                 <TreePine className="h-3 w-3 text-teal-600" />
@@ -399,8 +399,8 @@ export default function SessionCanvas({
                     </motion.span>
 
                     <div className="relative z-10 min-w-0">
-                      <p className="truncate text-xs font-semibold leading-tight">{skill.title}</p>
-                      <p className={`mt-0.5 text-[10px] ${isSelected ? 'text-teal-600' : 'text-slate-400'}`}>
+                      <p className="truncate text-sm font-semibold leading-tight">{skill.title}</p>
+                      <p className={`mt-0.5 text-xs ${isSelected ? 'text-teal-600' : 'text-slate-500'}`}>
                         {statusLabel[skill.status]}
                       </p>
                     </div>
@@ -410,45 +410,45 @@ export default function SessionCanvas({
             </motion.div>
 
             <div className="min-h-0 flex-1 border-t border-slate-200/70 px-3 py-3">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Agent Inbox</p>
+              <p className="mb-2 text-sm font-semibold text-slate-700">Agent Inbox</p>
               <div className="max-h-full space-y-2 overflow-y-auto">
                 {activeSuggestions.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[11px] text-slate-500">
+                  <p className="rounded-xl border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-xs text-slate-600">
                     No agent suggestions for this session yet.
                   </p>
                 ) : (
                   activeSuggestions.map((suggestion) => (
                     <div key={suggestion.id} className="rounded-xl border border-slate-200 bg-white p-2.5">
                       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-700">
+                        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
                           {suggestion.action}
                         </span>
                         {suggestion.action === 'create' && suggestion.intent ? (
-                          <span className="rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-teal-700">
+                          <span className="rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold text-teal-700">
                             {suggestion.intent}
                           </span>
                         ) : null}
                       </div>
-                      <p className="text-[11px] font-medium text-slate-800">
+                      <p className="text-sm font-medium text-slate-800">
                         {suggestion.action === 'create'
                           ? suggestion.title
                           : suggestion.action === 'retitle'
                             ? `Rename ${suggestion.targetSessionId}`
                             : `Reprioritize ${suggestion.targetSessionId}`}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">{suggestion.rationale}</p>
+                      <p className="mt-1 text-xs text-slate-600">{suggestion.rationale}</p>
                       <div className="mt-2 flex gap-2">
                         <button
                           type="button"
                           onClick={() => onAcceptSuggestion(suggestion.id)}
-                          className="min-h-11 rounded-lg bg-teal-600 px-3 text-xs font-semibold text-white transition hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+                          className="min-h-11 rounded-lg bg-teal-600 px-3 text-sm font-semibold text-white transition hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
                         >
                           Accept
                         </button>
                         <button
                           type="button"
                           onClick={() => onDismissSuggestion(suggestion.id)}
-                          className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                          className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                         >
                           Dismiss
                         </button>
@@ -484,8 +484,8 @@ export default function SessionCanvas({
                   <BookOpen className="h-6 w-6 text-slate-400" />
                 </motion.div>
                 <motion.div variants={fadeSlideY(reducedMotion, 8)}>
-                  <p className="font-heading text-sm font-semibold text-slate-700">{selectedSkill.title}</p>
-                  <p className="mt-1 text-xs text-slate-400">{selectedSkill.description}</p>
+                  <p className="font-heading text-base font-semibold text-slate-700">{selectedSkill.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">{selectedSkill.description}</p>
                 </motion.div>
 
                 {selectedSkill.status === 'available' && (
@@ -495,14 +495,14 @@ export default function SessionCanvas({
                     whileHover={reducedMotion ? undefined : { y: -1 }}
                     whileTap={reducedMotion ? undefined : { scale: 0.98 }}
                     transition={springFor(reducedMotion, 'snappy')}
-                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-700"
+                    className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
                   >
                     Start Session →
                   </motion.button>
                 )}
 
                 {selectedSkill.status === 'locked' && (
-                  <motion.p className="text-[11px] text-slate-400" variants={fadeSlideY(reducedMotion, 8)}>
+                  <motion.p className="text-xs text-slate-500" variants={fadeSlideY(reducedMotion, 8)}>
                     Complete previous skills to unlock
                   </motion.p>
                 )}
