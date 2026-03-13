@@ -84,7 +84,7 @@ export default function WelcomePage({
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:min-h-[32rem]">
             <p className="font-heading text-lg font-semibold text-slate-800">Course Packages</p>
-            <p className="mt-1 text-sm text-slate-600">Click a package to start right away.</p>
+            <p className="mt-1 text-sm text-slate-600">Click a package to see details and start.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {coursePackages.map((item) => (
                 <button

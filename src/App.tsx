@@ -6,6 +6,8 @@ import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
 import WelcomePage from './components/WelcomePage';
 import CreatorBuilderPage from './components/CreatorBuilderPage';
+import CourseDetailPage from './components/CourseDetailPage';
+import { COURSE_COMMUNITY } from './data/courseCommunity';
 import { MOTION_DURATION, springFor, tweenFor } from './motion/tokens';
 import { fadeSlideY, staggerContainer } from './motion/variants';
 import {
@@ -803,6 +805,7 @@ function App() {
   const nextTimeline = () => timelineCounter.current++;
   const [publishedPackages, setPublishedPackages] = useState<CoursePackageConfig[]>([]);
   const [creatorStudioOpen, setCreatorStudioOpen] = useState(false);
+  const [previewPackageId, setPreviewPackageId] = useState<string | null>(null);
 
   const allCoursePackages = useMemo(
     () => [...COURSE_PACKAGES, ...publishedPackages],
@@ -1019,6 +1022,13 @@ function App() {
 
     setWorkspaces((prev) => [nextWorkspace, ...prev]);
     setActiveWorkspaceId(workspaceId);
+  };
+
+  const handlePreviewPackage = (coursePackageId: string) => {
+    setPreviewPackageId(coursePackageId);
+  };
+  const handleBackFromPreview = () => {
+    setPreviewPackageId(null);
   };
 
   const handleStartPackageSession = (coursePackageId: string) => {
@@ -1622,13 +1632,31 @@ function App() {
       );
     }
 
+    if (previewPackageId) {
+      const previewPkg = allCoursePackages.find((p) => p.id === previewPackageId);
+      const community = COURSE_COMMUNITY[previewPackageId];
+      if (previewPkg && community) {
+        return (
+          <CourseDetailPage
+            pkg={previewPkg}
+            community={community}
+            onStartCourse={() => {
+              setPreviewPackageId(null);
+              handleStartPackageSession(previewPackageId);
+            }}
+            onBack={handleBackFromPreview}
+          />
+        );
+      }
+    }
+
     return (
       <WelcomePage
         sessions={customWorkspaceSummaries}
         coursePackages={coursePackageOptions}
         onOpenSession={handleOpenWorkspace}
         onCreateCustomSession={handleCreateCustomWorkspace}
-        onStartPackageSession={handleStartPackageSession}
+        onStartPackageSession={handlePreviewPackage}
         onOpenCreatorStudio={() => setCreatorStudioOpen(true)}
       />
     );
