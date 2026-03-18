@@ -1155,6 +1155,13 @@ function App() {
     }
     setActiveSessionId(sessionId);
     setNodes((prev) => applyActiveSession(prev, sessionId));
+    // Auto-switch the canvas tab based on whether the session has rich content.
+    // Use the current rendered state (not pending updates) to decide.
+    // When called from createSubSession, blocks are not set yet (empty/undefined),
+    // so we'll fall to 'skill-tree'; the explicit changeLeftTab('content') call
+    // that follows createSubSession will override this for new topic sessions.
+    const sessionBlocks = richBlocksBySession[sessionId] ?? EMPTY_RICH_BLOCKS;
+    changeLeftTab(sessionBlocks.length > 0 ? 'content' : 'skill-tree');
   };
 
   const appendMessage = (
