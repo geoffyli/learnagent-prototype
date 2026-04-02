@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle2, ChevronRight, CircleDot, SendHorizontal, WandSparkles } from 'lucide-react';
+import { ChevronRight, SendHorizontal, Sparkles, WandSparkles } from 'lucide-react';
 import { CONTENT_PACK_LABELS, type ContentPackId } from '../data/richReplies';
 import {
   AnySessionRecord,
   BranchIntent,
   ChatMessage,
   MainSessionPhase,
-  MainSessionRecord,
   SessionNode,
   SkillNodeStatus,
 } from '../types/session-graph';
+import type { ContentBlock } from '../types/content-blocks';
+import type { AgentNodeSuggestion } from '../types/session-graph';
 import { MOTION_DURATION, springFor, tweenFor } from '../motion/tokens';
 import { fadeSlideY, staggerContainer } from '../motion/variants';
 
@@ -22,9 +23,6 @@ interface SessionChatProps {
   activeSkillStatus?: SkillNodeStatus | null;
   onSendMessage: (message: string, options?: { displayMessage?: string }) => void;
   onCreateBranch: (kind: 'ask' | 'explain', selectedText: string) => void;
-  onAdvancePlanning: () => void;
-  onFinishPlanning: () => void;
-  onCompleteSkill?: (skillNodeId: string) => void;
   packageSuggestedActions?: Array<{ label: string; prompt: string }>;
   creatorCommands?: Array<{
     id: string;
@@ -39,6 +37,11 @@ interface SessionChatProps {
       type?: 'text' | 'url';
     }>;
   }>;
+  richBlocks?: ContentBlock[];
+  canvasOpen?: boolean;
+  onToggleCanvas?: () => void;
+  agentSuggestions?: AgentNodeSuggestion[];
+  onAcceptSuggestion?: (id: string) => void;
 }
 
 interface SelectionPopover {
@@ -67,11 +70,14 @@ const CONTENT_ACTION_PACKS: ContentPackId[] = [
   'performance-playbook',
 ];
 
-const CONTENT_QUICK_ACTIONS: QuickAction[] = CONTENT_ACTION_PACKS.map((packId) => ({
+const _CONTENT_QUICK_ACTIONS: QuickAction[] = CONTENT_ACTION_PACKS.map((packId) => ({
   label: CONTENT_PACK_LABELS[packId],
   prompt: `@content:${packId}`,
   category: 'content',
 }));
+
+// Suppress unused-variable warning — kept for potential future use
+void _CONTENT_QUICK_ACTIONS;
 
 function getQuickActions(
   kind: SessionNode['kind'],
@@ -89,37 +95,38 @@ function getQuickActions(
   }
 
   if (kind === 'main') {
-    return [
+    const actions: QuickAction[] = [
       ...suggested,
       { label: 'Which skill should I focus on next?', prompt: 'Which skill should I learn next?' },
       { label: 'Show SQL vs dashboard priorities', prompt: 'Show SQL vs dashboard priorities for interviews' },
       { label: 'What should I review this week?', prompt: 'What should I review this week?' },
     ];
+    return actions.slice(0, 3);
   }
 
   if (kind === 'topic') {
-    return [
+    const actions: QuickAction[] = [
       ...suggested,
-      ...CONTENT_QUICK_ACTIONS,
       { label: 'Common interview mistakes?', prompt: 'What are common interview mistakes here?' },
       { label: 'Run mastery check', prompt: 'Quiz me on this topic' },
     ];
+    return actions.slice(0, 3);
   }
 
   if (kind === 'branch') {
-    return [
+    const actions: QuickAction[] = [
       ...suggested,
-      ...CONTENT_QUICK_ACTIONS,
       { label: 'Show practical interview example', prompt: 'Show me a practical interview example' },
       { label: 'Common mistake here?', prompt: 'What is a common mistake with this?' },
     ];
+    return actions.slice(0, 3);
   }
 
-  return [
-    ...CONTENT_QUICK_ACTIONS,
+  const actions: QuickAction[] = [
     { label: 'Explain with analogy', prompt: 'Explain this with an analogy' },
     { label: 'One-sentence mental model', prompt: 'Give me the one-sentence mental model' },
   ];
+  return actions.slice(0, 3);
 }
 
 function messageStyle(message: ChatMessage): string {
@@ -148,15 +155,15 @@ export default function SessionChat({
   activeNode,
   activeSession,
   mainPhase,
-  activeSkillNodeId,
-  activeSkillStatus,
   onSendMessage,
   onCreateBranch,
-  onAdvancePlanning,
-  onFinishPlanning,
-  onCompleteSkill,
   packageSuggestedActions = [],
   creatorCommands = [],
+  richBlocks,
+  canvasOpen,
+  onToggleCanvas,
+  agentSuggestions,
+  onAcceptSuggestion,
 }: SessionChatProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [inputsBySession, setInputsBySession] = useState<Record<string, string>>({});
@@ -403,6 +410,42 @@ export default function SessionChat({
           </AnimatePresence>
         </div>
 
+        {richBlocks && richBlocks.length > 0 && onToggleCanvas && (
+          <motion.div
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
+            className="mx-auto max-w-[90%]"
+          >
+            <button
+              type="button"
+              onClick={onToggleCanvas}
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${canvasOpen ? 'border-violet-300 bg-violet-50' : 'border-violet-200 bg-violet-50/60 hover:border-violet-300'}`}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-violet-500" />
+              <p className="min-w-0 flex-1 truncate text-xs font-medium text-violet-700">
+                {richBlocks.length} {richBlocks.length === 1 ? 'artifact' : 'artifacts'}
+              </p>
+              <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-violet-400 transition ${canvasOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </motion.div>
+        )}
+
+        {agentSuggestions && agentSuggestions.length > 0 && onAcceptSuggestion && (
+          <div className="mx-auto flex max-w-[90%] flex-wrap gap-2">
+            {agentSuggestions.filter(s => s.action === 'create').slice(0, 3).map((suggestion) => (
+              <button
+                key={suggestion.id}
+                type="button"
+                onClick={() => onAcceptSuggestion(suggestion.id)}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-teal-300 hover:text-teal-700"
+              >
+                {suggestion.title}
+              </button>
+            ))}
+          </div>
+        )}
+
         <AnimatePresence>
           {selectionPopover && (
             <motion.div
@@ -414,32 +457,19 @@ export default function SessionChat({
               transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
             >
               <p className="mb-2 max-w-[220px] text-xs text-slate-600">
-                Branch from selected text:
+                Explore this further:
               </p>
-              <div className="flex gap-2">
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    onCreateBranch('ask', selectionPopover.text);
-                    clearNativeSelection();
-                  }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100"
-                >
-                  Ask
-                </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    onCreateBranch('explain', selectionPopover.text);
-                    clearNativeSelection();
-                  }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
-                >
-                  Explain
-                </motion.button>
-              </div>
+              <motion.button
+                type="button"
+                onClick={() => {
+                  onCreateBranch('ask', selectionPopover.text);
+                  clearNativeSelection();
+                }}
+                whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+                className="rounded-lg bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-100"
+              >
+                Deep Dive
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -454,163 +484,24 @@ export default function SessionChat({
               transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
             >
               <p className="mb-2 max-w-[250px] text-xs text-slate-600">
-                Branch from selected text (keyboard accessible):
+                Explore this further:
               </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onCreateBranch('ask', selectionText);
-                    clearNativeSelection();
-                  }}
-                  className="rounded-lg bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100"
-                >
-                  Ask
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onCreateBranch('explain', selectionText);
-                    clearNativeSelection();
-                  }}
-                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
-                >
-                  Explain
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onCreateBranch('ask', selectionText);
+                  clearNativeSelection();
+                }}
+                className="rounded-lg bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-100"
+              >
+                Deep Dive
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
 
         <div ref={endRef} />
       </div>
-
-      {mainPhase === 'planning' && activeSession.kind === 'main' && (() => {
-        const planning = (activeSession as MainSessionRecord).planning;
-        if (!planning) return null;
-        const activeStep = planning.steps.find((s) => s.state === 'active');
-        const doneCount = planning.steps.filter((s) => s.state === 'done').length;
-        const total = planning.steps.length;
-        const allDone = doneCount === total;
-
-        return (
-          <motion.div
-            className="border-t border-amber-100 bg-amber-50/80 px-4 py-3"
-            initial={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
-          >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  {planning.steps.map((step) => (
-                    <motion.span
-                      key={step.id}
-                      className="inline-block h-1.5 w-5 rounded-full"
-                      animate={{
-                        backgroundColor:
-                          step.state === 'done'
-                            ? '#14b8a6'
-                            : step.state === 'active'
-                              ? '#f59e0b'
-                              : '#e2e8f0',
-                        scaleY: step.state === 'active' && !reducedMotion ? [1, 1.25, 1] : 1,
-                      }}
-                      transition={
-                        step.state === 'active' && !reducedMotion
-                          ? {
-                              duration: 1.2,
-                              repeat: Infinity,
-                              ease: 'easeInOut',
-                            }
-                          : tweenFor(reducedMotion, MOTION_DURATION.fast)
-                      }
-                    />
-                  ))}
-                </div>
-                  <span className="text-xs font-medium text-amber-800">
-                  {allDone ? 'Plan ready' : `Planning · Step ${doneCount + 1} of ${total}`}
-                </span>
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait" initial={false}>
-              {activeStep && !allDone && (
-                <motion.div
-                  key={activeStep.id}
-                  className="mb-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2"
-                  initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: reducedMotion ? 0 : -6 }}
-                  transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                >
-                  <CircleDot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">{activeStep.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-600">{activeStep.details}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {planning.report && (
-              <motion.div
-                className="mb-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm text-slate-700"
-                initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-              >
-                <p className="font-semibold text-teal-800">Plan ready — {planning.report.milestones.length} milestones</p>
-                <p className="mt-0.5 line-clamp-1 text-slate-500">{planning.report.goal}</p>
-              </motion.div>
-            )}
-
-            <div className="flex gap-2">
-              <motion.button
-                type="button"
-                onClick={onAdvancePlanning}
-                disabled={allDone}
-                whileHover={!reducedMotion && !allDone ? { y: -1 } : undefined}
-                whileTap={!reducedMotion && !allDone ? { scale: 0.98 } : undefined}
-                transition={springFor(reducedMotion, 'snappy')}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-                {allDone ? 'All steps done' : 'Continue'}
-              </motion.button>
-
-              <motion.button
-                type="button"
-                onClick={onFinishPlanning}
-                disabled={!planning.report}
-                whileHover={!reducedMotion && planning.report ? { y: -1 } : undefined}
-                whileTap={!reducedMotion && planning.report ? { scale: 0.98 } : undefined}
-                transition={springFor(reducedMotion, 'snappy')}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Start Learning
-              </motion.button>
-            </div>
-          </motion.div>
-        );
-      })()}
-
-      {activeNode.kind === 'topic' && activeSkillNodeId && (
-        <div className="border-t border-teal-100 bg-teal-50/60 px-4 py-3">
-          <motion.button
-            type="button"
-            onClick={() => onCompleteSkill?.(activeSkillNodeId)}
-            disabled={activeSkillStatus !== 'in-progress'}
-            whileHover={reducedMotion || activeSkillStatus !== 'in-progress' ? undefined : { y: -1 }}
-            whileTap={reducedMotion || activeSkillStatus !== 'in-progress' ? undefined : { scale: 0.98 }}
-            transition={springFor(reducedMotion, 'snappy')}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-          >
-            {activeSkillStatus === 'completed' ? 'Node Mastered' : 'Mark Node Mastered'}
-          </motion.button>
-        </div>
-      )}
 
       <div className="border-t border-white/50 bg-white/55 px-4 py-4">
         {quickActions.length > 0 && (
@@ -700,6 +591,16 @@ export default function SessionChat({
               )}
             </AnimatePresence>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setInputsBySession((prev) => ({ ...prev, [activeSession.id]: '/' }));
+            }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-teal-300 hover:text-teal-700"
+            title="Open commands"
+          >
+            <span className="font-mono text-sm font-bold">/</span>
+          </button>
           <motion.button
             type="button"
             onClick={() => submitInput(input)}

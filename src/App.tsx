@@ -1,6 +1,6 @@
 import { ChangeEvent, SetStateAction, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Sparkles, TreePine } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, CircleDot, Lock, Map as MapIcon, Sparkles, X } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
@@ -562,32 +562,6 @@ function planningSeedMessage(coursePackage: CoursePackageConfig, intakeSummary: 
   };
 }
 
-const PLANNING_STEP_USER_MESSAGES: Record<string, string> = {
-  purpose: 'Goal: become interview-ready for this package',
-  baseline: 'Baseline: I have partial foundations and need structured improvement',
-  research: 'Timeline: comfortable in 8 weeks',
-  milestones: 'Please draft a milestone roadmap for me',
-  report: 'Looks good — finalize the plan',
-};
-
-function buildPlanningStepMessages(coursePackage: CoursePackageConfig): Record<string, string> {
-  const [firstNode, secondNode, thirdNode] = coursePackage.skillNodes;
-  const lastNode = coursePackage.skillNodes[coursePackage.skillNodes.length - 1];
-
-  return {
-    purpose:
-      `Got it. Your target is ${coursePackage.title}. I will optimize this plan for practical interview performance and output quality for this package.`,
-    baseline:
-      `Baseline assessed. I will accelerate fundamentals where possible and focus on your highest-impact gaps for ${coursePackage.title}.`,
-    research:
-      `References gathered. I selected realistic interview scenarios and package-specific practice prompts so this stays execution-oriented instead of theory-heavy.`,
-    milestones:
-      `Milestone draft ready. I structured an 8-week path with dependency gates:\n\n→ Weeks 1-2: ${firstNode?.title ?? 'Core Foundation'} + ${secondNode?.title ?? 'Applied Skills'}\n→ Weeks 3-4: ${thirdNode?.title ?? 'Intermediate Progression'}\n→ Weeks 5-8: Advanced practice ending with ${lastNode?.title ?? 'Case Simulation'}\n\nEach stage includes practice, mastery checks, and review tasks.`,
-    report:
-      `Learning plan finalized. I generated a personalized ${coursePackage.skillNodes.length}-node skill tree with unlock dependencies, mastery checkpoints, and review scheduling. Start with ${firstNode?.title ?? 'the first node'} to unlock the rest of the sprint.`,
-  };
-}
-
 function buildPlanningState(): PlanningState {
   return {
     steps: [
@@ -720,6 +694,153 @@ function buildSkillDrivenReply(
   ].join('\n');
 }
 
+/* ---------- SkillProgressBar ---------- */
+
+function SkillProgressBar({
+  skillNodes,
+  activeSkillNodeId,
+  onSelectSkill,
+  onCompleteSkill,
+}: {
+  skillNodes: SkillNode[];
+  activeSkillNodeId?: string;
+  onSelectSkill: (id: string) => void;
+  onCompleteSkill: (id: string) => void;
+}) {
+  const reducedMotion = useReducedMotion() ?? false;
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white/80 px-4 py-2.5">
+      {skillNodes.map((skill) => {
+        const isActive = skill.id === activeSkillNodeId;
+        const isLocked = skill.status === 'locked';
+        const isCompleted = skill.status === 'completed';
+        const isInProgress = skill.status === 'in-progress';
+        return (
+          <motion.button
+            key={skill.id}
+            type="button"
+            onClick={() => !isLocked && onSelectSkill(skill.id)}
+            disabled={isLocked}
+            whileHover={reducedMotion || isLocked ? undefined : { y: -1 }}
+            whileTap={reducedMotion || isLocked ? undefined : { scale: 0.97 }}
+            className={`group relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              isActive
+                ? 'ring-2 ring-teal-400 ring-offset-1'
+                : ''
+            } ${
+              isCompleted
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                : isInProgress
+                  ? 'border border-teal-200 bg-teal-50 text-teal-700'
+                  : isLocked
+                    ? 'border border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:border-teal-300'
+            }`}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : isInProgress ? (
+              <CircleDot className="h-3.5 w-3.5" />
+            ) : isLocked ? (
+              <Lock className="h-3 w-3" />
+            ) : (
+              <Circle className="h-3.5 w-3.5" />
+            )}
+            <span className="max-w-[120px] truncate">{skill.title}</span>
+            {isInProgress && isActive && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
+                className="ml-0.5 rounded-full bg-teal-600 p-0.5 text-white hover:bg-teal-700"
+                title="Mark as mastered"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+              </button>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- CanvasSlideOver ---------- */
+
+function CanvasSlideOver({
+  view,
+  blocks,
+  onClose,
+  onSwitchView,
+  skillTreeProps,
+}: {
+  view: 'content' | 'skill-tree';
+  blocks: ContentBlock[];
+  onClose: () => void;
+  onSwitchView: (view: 'content' | 'skill-tree') => void;
+  skillTreeProps: {
+    nodes: SessionNode[];
+    activeSessionId: string;
+    activeSuggestions: AgentNodeSuggestion[];
+    skillNodes: SkillNode[];
+    mainPhase: MainSessionPhase;
+    planningState: PlanningState | null;
+    onSelectSession: (sessionId: string) => void;
+    onSelectSkillNode: (skillNodeId: string) => void;
+    onAcceptSuggestion: (suggestionId: string) => void;
+    onDismissSuggestion: (suggestionId: string) => void;
+  };
+}) {
+  const reducedMotion = useReducedMotion() ?? false;
+  const hasContent = blocks.length > 0;
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: reducedMotion ? 0 : 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: reducedMotion ? 0 : 24 }}
+      transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm"
+    >
+      <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onSwitchView('skill-tree')}
+            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-teal-50 text-teal-700' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Skill Map
+          </button>
+          {hasContent && (
+            <button
+              type="button"
+              onClick={() => onSwitchView('content')}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Artifact
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          title="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {view === 'skill-tree' ? (
+          <SessionCanvas {...skillTreeProps} />
+        ) : (
+          <RichContentPanel blocks={blocks} />
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ---------- WorkspaceState ---------- */
+
 interface WorkspaceState {
   id: string;
   title: string;
@@ -727,8 +848,6 @@ interface WorkspaceState {
   origin: 'custom' | 'package';
   createdAt: number;
   updatedAt: number;
-  leftTab: 'skill-tree' | 'content';
-  tabDirection: number;
   richBlocksBySession: Record<string, ContentBlock[]>;
   agentSuggestionsBySession: Record<string, AgentNodeSuggestion[]>;
   nodes: SessionNode[];
@@ -764,8 +883,6 @@ function createWorkspace(
     origin,
     createdAt: now,
     updatedAt: now,
-    leftTab: 'skill-tree',
-    tabDirection: -1,
     richBlocksBySession: {
       [MAIN_SESSION_ID]: [],
     },
@@ -806,6 +923,9 @@ function App() {
   const [publishedPackages, setPublishedPackages] = useState<CoursePackageConfig[]>([]);
   const [creatorStudioOpen, setCreatorStudioOpen] = useState(false);
   const [previewPackageId, setPreviewPackageId] = useState<string | null>(null);
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [canvasView, setCanvasView] = useState<'content' | 'skill-tree'>('content');
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   const allCoursePackages = useMemo(
     () => [...COURSE_PACKAGES, ...publishedPackages],
@@ -845,20 +965,6 @@ function App() {
         };
       }),
     );
-  };
-
-  const setLeftTab = (next: SetStateAction<'skill-tree' | 'content'>) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      leftTab: resolveState(workspace.leftTab, next),
-    }));
-  };
-
-  const setTabDirection = (next: SetStateAction<number>) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      tabDirection: resolveState(workspace.tabDirection, next),
-    }));
   };
 
   const setSessionRichBlocks = (
@@ -908,8 +1014,6 @@ function App() {
     }));
   };
 
-  const leftTab = workspaceState?.leftTab ?? 'skill-tree';
-  const tabDirection = workspaceState?.tabDirection ?? -1;
   const richBlocksBySession = workspaceState?.richBlocksBySession ?? EMPTY_RICH_BLOCKS_BY_SESSION;
   const nodes = workspaceState?.nodes ?? EMPTY_NODES;
   const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
@@ -971,21 +1075,6 @@ function App() {
   const visibleRichBlocks = activeRichBlocks.length > 0 ? activeRichBlocks : inferredFallbackRichBlocks;
 
 
-  const activePath = useMemo(() => {
-    const path: SessionNode[] = [];
-    let current: SessionNode | undefined = activeNode;
-
-    while (current) {
-      path.unshift(current);
-      if (!current.parentId) {
-        break;
-      }
-      current = nodeMap.get(current.parentId);
-    }
-
-    return path;
-  }, [activeNode, nodeMap]);
-  const activePathLabel = activePath.map((node) => node.title).join(' / ') || 'No session selected';
   const pageVariants = staggerContainer(reducedMotion, 0.09, 0.03);
   const pageItemVariants = fadeSlideY(reducedMotion, 10, MOTION_DURATION.slow);
 
@@ -1076,29 +1165,70 @@ function App() {
     setCreatorStudioOpen(false);
   };
 
-  const handleStartPlanning = () => {
+  const handleStartLearning = () => {
     if (!activeWorkspaceId) {
+      return;
+    }
+
+    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+    if (!mainSession || mainSession.phase !== 'setup') {
       return;
     }
 
     const intakeSummary = summarizeIntakeForPlanning(activeCoursePackage, learnerIntake);
 
+    // Transition to planning phase immediately (shows loading overlay)
     setSessions((prev) => {
-      const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
-      if (!mainSession || mainSession.phase !== 'setup') {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session || session.phase !== 'setup') {
         return prev;
       }
-
       return {
         ...prev,
         [MAIN_SESSION_ID]: {
-          ...mainSession,
+          ...session,
           phase: 'planning',
           planning: buildPlanningState(),
           messages: [planningSeedMessage(activeCoursePackage, intakeSummary)],
         },
       };
     });
+
+    setIsGeneratingPlan(true);
+
+    setTimeout(() => {
+      // Build planning state with all steps done
+      const planningState = buildPlanningState();
+      const doneSteps = planningState.steps.map((step) => ({ ...step, state: 'done' as const }));
+      const report = generateLearningReport(activeCoursePackage);
+      const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
+      const firstSkillTitle = skillNodes[0]?.title ?? 'the first node';
+
+      setSessions((prev) => {
+        const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+        if (!session) return prev;
+        return {
+          ...prev,
+          [MAIN_SESSION_ID]: {
+            ...session,
+            phase: 'learning' as const,
+            planning: { steps: doneSteps, report },
+            skillNodes,
+            messages: [
+              ...session.messages,
+              {
+                id: 'plan-summary',
+                role: 'assistant' as const,
+                content: `Your personalized learning plan is ready. Let's start with ${firstSkillTitle}.`,
+                timestamp: createTimestamp(),
+              },
+            ],
+          },
+        };
+      });
+
+      setIsGeneratingPlan(false);
+    }, 1800);
   };
 
   const handleIntakeFileUpload = (fieldId: string, event: ChangeEvent<HTMLInputElement>) => {
@@ -1144,24 +1274,19 @@ function App() {
     }));
   };
 
-  const changeLeftTab = (nextTab: 'skill-tree' | 'content') => {
-    setTabDirection(nextTab === 'content' ? 1 : -1);
-    setLeftTab(nextTab);
-  };
-
   const activateSession = (sessionId: string) => {
     if (!activeWorkspaceId) {
       return;
     }
     setActiveSessionId(sessionId);
     setNodes((prev) => applyActiveSession(prev, sessionId));
-    // Auto-switch the canvas tab based on whether the session has rich content.
-    // Use the current rendered state (not pending updates) to decide.
-    // When called from createSubSession, blocks are not set yet (empty/undefined),
-    // so we'll fall to 'skill-tree'; the explicit changeLeftTab('content') call
-    // that follows createSubSession will override this for new topic sessions.
     const sessionBlocks = richBlocksBySession[sessionId] ?? EMPTY_RICH_BLOCKS;
-    changeLeftTab(sessionBlocks.length > 0 ? 'content' : 'skill-tree');
+    if (sessionBlocks.length > 0) {
+      setCanvasView('content');
+      setCanvasOpen(true);
+    } else {
+      setCanvasOpen(false);
+    }
   };
 
   const appendMessage = (
@@ -1275,13 +1400,13 @@ function App() {
     // Ask/explain branches must not overwrite the topic session link
     if (skillNodeId && kind === 'topic') {
       setSessions((prev) => {
-        const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord;
-        if (!mainSession) return prev;
+        const mainSess = prev[MAIN_SESSION_ID] as MainSessionRecord;
+        if (!mainSess) return prev;
         return {
           ...prev,
           [MAIN_SESSION_ID]: {
-            ...mainSession,
-            skillNodes: mainSession.skillNodes.map((n) =>
+            ...mainSess,
+            skillNodes: mainSess.skillNodes.map((n) =>
               n.id === skillNodeId ? { ...n, sessionId } : n,
             ),
           },
@@ -1318,7 +1443,8 @@ function App() {
         const commandBlocks = resolvePackById(matchedCommand.defaultContentPackId);
         if (commandBlocks) {
           setSessionRichBlocks(activeSessionId, commandBlocks);
-          changeLeftTab('content');
+          setCanvasView('content');
+          setCanvasOpen(true);
         }
       }
       return;
@@ -1348,7 +1474,8 @@ function App() {
 
     if (contentResult.rich) {
       setSessionRichBlocks(activeSessionId, contentResult.rich);
-      changeLeftTab('content');
+      setCanvasView('content');
+      setCanvasOpen(true);
     }
   };
 
@@ -1356,7 +1483,7 @@ function App() {
     if (!activeNode) {
       return;
     }
-    changeLeftTab('skill-tree');
+    setCanvasOpen(false);
     const label = selectedText.slice(0, 42);
     const title = `${kind === 'ask' ? 'Ask' : 'Explain'} • ${label}`;
     const promptProfile = branchPromptProfile(kind);
@@ -1449,85 +1576,12 @@ function App() {
     setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
   };
 
-  const handleAdvancePlanning = () => {
-    if (!activeSession) return;
-    if (!activeSession.planning) return;
-
-    const stepIndex = activeSession.planning.steps.findIndex(
-      (step) => step.state === 'active',
-    );
-    if (stepIndex === -1) return;
-
-    const completingStep = activeSession.planning.steps[stepIndex];
-
-    const userMessage = PLANNING_STEP_USER_MESSAGES[completingStep.id];
-    if (userMessage) {
-      appendMessage(activeSessionId, { role: 'user', content: userMessage });
-    }
-
-    const planningStepMessages = buildPlanningStepMessages(activeCoursePackage);
-    const narrativeContent = planningStepMessages[completingStep.id];
-    if (narrativeContent) {
-      appendMessage(activeSessionId, { role: 'assistant', content: narrativeContent });
-    }
-
-    setSessions((prev) => {
-      const session = prev[activeSessionId];
-      if (!session?.planning || session.planning.report) return prev;
-
-      const updatedSteps = session.planning.steps.map((step, index) => {
-        if (index === stepIndex) return { ...step, state: 'done' as const };
-        if (index === stepIndex + 1) return { ...step, state: 'active' as const };
-        return step;
-      });
-
-      const doneCount = updatedSteps.filter((s) => s.state === 'done').length;
-      const isFinished = doneCount === updatedSteps.length;
-      const report = isFinished ? generateLearningReport(activeCoursePackage) : null;
-
-      return {
-        ...prev,
-        [activeSessionId]: {
-          ...session,
-          planning: { steps: updatedSteps, report },
-        },
-      };
-    });
-  };
-
-
-  const handleFinishPlanning = () => {
-    if (!activeWorkspaceId) {
-      return;
-    }
-    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
-    const report = mainSession?.planning?.report;
-    if (!report) {
-      return;
-    }
-
-    const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
-
-    setSessions((prev) => {
-      const session = prev[MAIN_SESSION_ID] as MainSessionRecord;
-      if (!session) return prev;
-      return {
-        ...prev,
-        [MAIN_SESSION_ID]: {
-          ...session,
-          phase: 'learning' as const,
-          skillNodes,
-        },
-      };
-    });
-  };
-
   const handleSelectSkillNode = (skillNodeId: string) => {
     if (!activeWorkspaceId) {
       return;
     }
-    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
-    const skillNode = mainSession?.skillNodes.find((n) => n.id === skillNodeId);
+    const mainSess = sessions[MAIN_SESSION_ID] as MainSessionRecord;
+    const skillNode = mainSess?.skillNodes.find((n) => n.id === skillNodeId);
     if (!skillNode || skillNode.status === 'locked') return;
 
     // If a session already exists for this node, navigate to it
@@ -1574,7 +1628,8 @@ function App() {
       const topicBlocks = resolvePackById(defaultPackId);
       if (topicBlocks) {
         setSessionRichBlocks(topicSessionId, topicBlocks);
-        changeLeftTab('content');
+        setCanvasView('content');
+        setCanvasOpen(true);
       }
     }
   };
@@ -1612,22 +1667,6 @@ function App() {
   const activeSkillStatus: SkillNodeStatus | null = activeSkillNodeId
     ? mainSkillNodes.find((node) => node.id === activeSkillNodeId)?.status ?? null
     : null;
-  const tabPaneVariants = {
-    enter: (direction: number) => ({
-      opacity: 0,
-      x: reducedMotion ? 0 : direction > 0 ? 22 : -22,
-    }),
-    center: {
-      opacity: 1,
-      x: 0,
-      transition: tweenFor(reducedMotion, MOTION_DURATION.slow),
-    },
-    exit: (direction: number) => ({
-      opacity: 0,
-      x: reducedMotion ? 0 : direction > 0 ? -14 : 14,
-      transition: tweenFor(reducedMotion, MOTION_DURATION.fast, 'exit'),
-    }),
-  };
 
   if (!activeWorkspaceId || !activeWorkspace || !activeNode || !activeSession) {
     if (creatorStudioOpen) {
@@ -1677,25 +1716,20 @@ function App() {
         initial="hidden"
         animate="visible"
       >
-        <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+        <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
-                LearnAgent Prototype
-              </p>
-              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="h-4 w-4 shrink-0 text-teal-600" />
+              <p className="truncate text-sm font-semibold text-slate-900">{activeCoursePackage.title}</p>
             </div>
             <motion.button
               type="button"
               onClick={handleBackToWelcome}
-              whileHover={reducedMotion ? undefined : { y: -1 }}
-              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Sessions
             </motion.button>
           </div>
         </motion.header>
@@ -1763,20 +1797,53 @@ function App() {
 
             <motion.button
               type="button"
-              onClick={handleStartPlanning}
+              onClick={handleStartLearning}
               disabled={!isIntakeReady}
               whileHover={reducedMotion ? undefined : { y: -1 }}
               whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               transition={springFor(reducedMotion, 'snappy')}
               className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              Generate Learning Plan
+              Start Learning
             </motion.button>
             {!isIntakeReady ? (
               <p className="mt-2 text-[13px] text-slate-600">Complete required fields to continue.</p>
             ) : null}
           </div>
         </motion.main>
+      </motion.div>
+    );
+  }
+
+  // Loading overlay during plan generation
+  if (isGeneratingPlan && mainPhase === 'planning') {
+    return (
+      <motion.div
+        className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                <Sparkles className="h-4 w-4 text-teal-600" />
+                LearnAgent Prototype
+              </p>
+              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
+              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
+            </div>
+          </div>
+        </motion.header>
+        <div className="flex h-[calc(100vh-7.5rem)] flex-col items-center justify-center gap-4">
+          <motion.div
+            className="h-8 w-8 rounded-full border-2 border-teal-600 border-t-transparent"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          />
+          <p className="text-sm font-medium text-slate-700">Building your personalized learning plan...</p>
+        </div>
       </motion.div>
     );
   }
@@ -1788,177 +1855,122 @@ function App() {
       initial="hidden"
       animate="visible"
     >
-      <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+      <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
         <div className="flex items-center justify-between gap-3">
-          <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
-                LearnAgent Prototype
-              </p>
-              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
-            </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 shrink-0 text-teal-600" />
+            <p className="truncate text-sm font-semibold text-slate-900">{activeCoursePackage.title}</p>
+            <span className="hidden text-xs text-slate-400 md:inline">/</span>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={activeSessionId}
+                className="hidden truncate text-xs text-slate-500 md:block"
+                initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: reducedMotion ? 0 : -3 }}
+                transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+              >
+                {activeNode.title}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {mainPhase === 'learning' && (
+              <motion.button
+                type="button"
+                onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
+                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-teal-300 bg-teal-50 text-teal-700' : 'border-slate-200 bg-white text-slate-500 hover:border-teal-200 hover:text-teal-600'}`}
+                title="Skill Map"
+              >
+                <MapIcon className="h-3.5 w-3.5" />
+              </motion.button>
+            )}
             <motion.button
               type="button"
               onClick={handleBackToWelcome}
-              whileHover={reducedMotion ? undefined : { y: -1 }}
-              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Sessions
             </motion.button>
-            <div className="hidden max-w-[420px] overflow-hidden md:block">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={activeSessionId}
-                  className="truncate text-xs text-slate-600"
-                  initial={{ opacity: 0, y: reducedMotion ? 0 : 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: reducedMotion ? 0 : -4 }}
-                  transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                >
-                  {activePathLabel}
-                </motion.p>
-              </AnimatePresence>
-            </div>
           </div>
         </div>
       </motion.header>
 
-      <motion.main
-        className="mt-4 grid gap-4 overflow-hidden lg:h-[calc(100vh-7.5rem)] lg:grid-cols-3"
-        variants={pageItemVariants}
-      >
-        <motion.section
-          className="min-h-[460px] min-w-0 lg:col-span-2 lg:h-full lg:min-h-0"
-          variants={fadeSlideY(reducedMotion, 12, MOTION_DURATION.slow)}
-        >
-          <div className="panel-surface flex h-full flex-col overflow-hidden">
-            <div className="flex items-center gap-1 border-b border-white/50 px-4 py-2.5">
-              <motion.button
-                type="button"
-                onClick={() => changeLeftTab('skill-tree')}
-                whileHover={reducedMotion ? undefined : { y: -1 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                className="group relative inline-flex items-center rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium"
-              >
-                {leftTab === 'skill-tree' && (
-                  <motion.span
-                    layoutId="left-tab-pill"
-                    className="absolute inset-0 rounded-lg border border-teal-200 bg-teal-50"
-                    transition={springFor(reducedMotion, 'snappy')}
-                  />
-                )}
-                <span className={`relative inline-flex items-center gap-1.5 ${leftTab === 'skill-tree' ? 'text-teal-700' : 'text-slate-500 transition group-hover:text-slate-700'}`}>
-                  <TreePine className="h-3.5 w-3.5" />
-                  Skill Tree
-                </span>
-              </motion.button>
-
-              <AnimatePresence initial={false}>
-                {(visibleRichBlocks.length > 0 || leftTab === 'content') && (
-                  <motion.button
-                    key="content-tab"
-                    type="button"
-                    onClick={() => changeLeftTab('content')}
-                    whileHover={reducedMotion ? undefined : { y: -1 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                    className="group relative inline-flex items-center rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium"
-                    initial={{ opacity: 0, y: reducedMotion ? 0 : -4, scale: reducedMotion ? 1 : 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: reducedMotion ? 0 : -4, scale: reducedMotion ? 1 : 0.98 }}
-                    transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                  >
-                    {leftTab === 'content' && (
-                      <motion.span
-                        layoutId="left-tab-pill"
-                        className="absolute inset-0 rounded-lg border border-violet-200 bg-violet-50"
-                        transition={springFor(reducedMotion, 'snappy')}
-                      />
-                    )}
-                    <span className={`relative inline-flex items-center gap-1.5 ${leftTab === 'content' ? 'text-violet-700' : 'text-slate-500 transition group-hover:text-slate-700'}`}>
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Content
-                    </span>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="relative min-h-0 flex-1 overflow-hidden">
-              <AnimatePresence custom={tabDirection} mode="wait" initial={false}>
-                {leftTab === 'skill-tree' ? (
-                  <motion.div
-                    key="tab-skill-tree"
-                    className="h-full"
-                    custom={tabDirection}
-                    variants={tabPaneVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    <SessionCanvas
-                      nodes={nodes}
-                      activeSessionId={activeSessionId}
-                      activeSuggestions={activeSuggestions}
-                      skillNodes={mainSkillNodes}
-                      mainPhase={mainPhase}
-                      planningState={mainSession?.planning ?? null}
-                      onSelectSession={activateSession}
-                      onSelectSkillNode={handleSelectSkillNode}
-                      onAcceptSuggestion={(suggestionId) => handleAcceptSuggestion(activeSessionId, suggestionId)}
-                      onDismissSuggestion={(suggestionId) => handleDismissSuggestion(activeSessionId, suggestionId)}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="tab-content"
-                    className="h-full"
-                    custom={tabDirection}
-                    variants={tabPaneVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    <RichContentPanel
-                      blocks={visibleRichBlocks}
-                      onCreateBranch={handleCreateBranch}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+      <motion.main className="mt-3 flex h-[calc(100vh-5.5rem)] gap-3 overflow-hidden" variants={pageItemVariants}>
+        {/* Main chat column */}
+        <div className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm ${canvasOpen ? '' : 'mx-auto max-w-3xl'}`}>
+          {/* Skill progress bar — only show in learning phase */}
+          {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
+            <SkillProgressBar
+              skillNodes={mainSkillNodes}
+              activeSkillNodeId={activeSkillNodeId}
+              onSelectSkill={handleSelectSkillNode}
+              onCompleteSkill={handleCompleteSkill}
+            />
+          )}
+          {/* Chat */}
+          <div className="min-h-0 flex-1">
+            <SessionChat
+              key={activeSession.id}
+              activeNode={activeNode}
+              activeSession={activeSession}
+              mainPhase={mainPhase}
+              activeSkillNodeId={activeSkillNodeId}
+              activeSkillStatus={activeSkillStatus}
+              creatorCommands={activeCoursePackage.commands.map((command) => ({
+                id: command.id,
+                trigger: command.trigger,
+                name: command.name,
+                description: command.description,
+                inputFields: command.inputFields,
+              }))}
+              packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
+              onSendMessage={handleSendMessage}
+              onCreateBranch={handleCreateBranch}
+              richBlocks={visibleRichBlocks}
+              canvasOpen={canvasOpen && canvasView === 'content'}
+              onToggleCanvas={() => {
+                if (canvasOpen && canvasView === 'content') {
+                  setCanvasOpen(false);
+                } else {
+                  setCanvasView('content');
+                  setCanvasOpen(true);
+                }
+              }}
+              agentSuggestions={activeSuggestions}
+              onAcceptSuggestion={(id) => handleAcceptSuggestion(activeSessionId, id)}
+            />
           </div>
-        </motion.section>
+        </div>
 
-        <motion.section
-          className="min-h-[460px] min-w-0 lg:col-span-1 lg:h-full lg:min-h-0"
-          variants={fadeSlideY(reducedMotion, 16, MOTION_DURATION.slow)}
-        >
-          <SessionChat
-            key={activeSession.id}
-            activeNode={activeNode}
-            activeSession={activeSession}
-            mainPhase={mainPhase}
-            activeSkillNodeId={activeSkillNodeId}
-            activeSkillStatus={activeSkillStatus}
-            creatorCommands={activeCoursePackage.commands.map((command) => ({
-              id: command.id,
-              trigger: command.trigger,
-              name: command.name,
-              description: command.description,
-              inputFields: command.inputFields,
-            }))}
-            packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
-            onSendMessage={handleSendMessage}
-            onCreateBranch={handleCreateBranch}
-            onAdvancePlanning={handleAdvancePlanning}
-            onFinishPlanning={handleFinishPlanning}
-            onCompleteSkill={handleCompleteSkill}
-          />
-        </motion.section>
+        {/* Canvas slide-over */}
+        <AnimatePresence>
+          {canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
+            <motion.div className="hidden w-[65%] shrink-0 lg:block">
+              <CanvasSlideOver
+                view={canvasView}
+                blocks={visibleRichBlocks}
+                onClose={() => setCanvasOpen(false)}
+                onSwitchView={setCanvasView}
+                skillTreeProps={{
+                  nodes,
+                  activeSessionId,
+                  activeSuggestions,
+                  skillNodes: mainSkillNodes,
+                  mainPhase,
+                  planningState: mainSession?.planning ?? null,
+                  onSelectSession: activateSession,
+                  onSelectSkillNode: handleSelectSkillNode,
+                  onAcceptSuggestion: (suggestionId) => handleAcceptSuggestion(activeSessionId, suggestionId),
+                  onDismissSuggestion: (suggestionId) => handleDismissSuggestion(activeSessionId, suggestionId),
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.main>
     </motion.div>
   );
