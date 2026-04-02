@@ -79,6 +79,29 @@ export type AgentNodeSuggestion =
   | RetitleNodeSuggestion
   | ReprioritizeNodeSuggestion;
 
+/* ---------- Global Agent Inbox ---------- */
+
+export type GlobalInboxAction =
+  | 'start-skill'
+  | 'practice'
+  | 'review'
+  | 'explore-topic'
+  | 'branch'
+  | 'set-goal'
+  | 'export-progress';
+
+export interface GlobalInboxItem {
+  id: string;
+  action: GlobalInboxAction;
+  title: string;
+  description: string;
+  icon: string;
+  priority: number;
+  createdAt: number;
+  skillNodeId?: string;
+  sessionId?: string;
+}
+
 export interface SessionEdge {
   id: string;
   from: string;

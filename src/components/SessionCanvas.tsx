@@ -11,7 +11,6 @@ import {
   TreePine,
 } from 'lucide-react';
 import {
-  AgentNodeSuggestion,
   MainSessionPhase,
   PlanningState,
   SessionNode,
@@ -25,14 +24,11 @@ import { sortBranchNodesForLayout } from '../state/session-node-order';
 interface SessionCanvasProps {
   nodes: SessionNode[];
   activeSessionId: string;
-  activeSuggestions: AgentNodeSuggestion[];
   skillNodes: SkillNode[];
   mainPhase: MainSessionPhase;
   planningState: PlanningState | null;
   onSelectSession: (sessionId: string) => void;
   onSelectSkillNode: (skillNodeId: string) => void;
-  onAcceptSuggestion: (suggestionId: string) => void;
-  onDismissSuggestion: (suggestionId: string) => void;
 }
 
 const statusDot: Record<SkillNodeStatus, string> = {
@@ -214,14 +210,11 @@ function PlanningPlaceholder({
 export default function SessionCanvas({
   nodes,
   activeSessionId,
-  activeSuggestions,
   skillNodes,
   mainPhase,
   planningState,
   onSelectSession,
   onSelectSkillNode,
-  onAcceptSuggestion,
-  onDismissSuggestion,
 }: SessionCanvasProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const sortedSkillNodes = useMemo(
@@ -408,56 +401,6 @@ export default function SessionCanvas({
                 );
               })}
             </motion.div>
-
-            <div className="min-h-0 flex-1 border-t border-slate-200/70 px-3 py-3">
-              <p className="mb-2 text-sm font-semibold text-slate-700">Agent Inbox</p>
-              <div className="max-h-full space-y-2 overflow-y-auto">
-                {activeSuggestions.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-xs text-slate-600">
-                    No agent suggestions for this session yet.
-                  </p>
-                ) : (
-                  activeSuggestions.map((suggestion) => (
-                    <div key={suggestion.id} className="rounded-xl border border-slate-200 bg-white p-2.5">
-                      <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
-                          {suggestion.action}
-                        </span>
-                        {suggestion.action === 'create' && suggestion.intent ? (
-                          <span className="rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold text-teal-700">
-                            {suggestion.intent}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-sm font-medium text-slate-800">
-                        {suggestion.action === 'create'
-                          ? suggestion.title
-                          : suggestion.action === 'retitle'
-                            ? `Rename ${suggestion.targetSessionId}`
-                            : `Reprioritize ${suggestion.targetSessionId}`}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-600">{suggestion.rationale}</p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onAcceptSuggestion(suggestion.id)}
-                          className="min-h-11 rounded-lg bg-teal-600 px-3 text-sm font-semibold text-white transition hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDismissSuggestion(suggestion.id)}
-                          className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-white/30 p-4">

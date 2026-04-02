@@ -1,4 +1,4 @@
-import type { AgentNodeSuggestion, BranchIntent, SessionNode } from '../types/session-graph';
+import type { AgentNodeSuggestion, BranchIntent, GlobalInboxItem, SessionNode, SkillNode } from '../types/session-graph';
 
 interface GenerateNodeSuggestionsInput {
   parentSessionId: string;
@@ -218,4 +218,165 @@ export function generateNodeSuggestions(input: GenerateNodeSuggestionsInput): Ag
   const reprioritizeSuggestions = suggestReprioritize(input.siblingNodes, context);
 
   return [...createSuggestions, ...retitleSuggestions, ...reprioritizeSuggestions].slice(0, MAX_NEW_SUGGESTIONS);
+}
+
+/* ---------- Global Inbox generation ---------- */
+
+let inboxCounter = 0;
+function nextInboxId(): string {
+  inboxCounter += 1;
+  return `gi-${inboxCounter}-${Date.now()}`;
+}
+
+/**
+ * Pre-seed global inbox when learning phase starts.
+ * Generates 2–3 proactive items based on the initial skill graph.
+ */
+export function generateInitialInboxItems(skillNodes: readonly SkillNode[], now: number): GlobalInboxItem[] {
+  const items: GlobalInboxItem[] = [];
+
+  const firstAvailable = skillNodes.find((n) => n.status === 'available');
+  if (firstAvailable) {
+    items.push({
+      id: nextInboxId(),
+      action: 'start-skill',
+      title: `Start with "${firstAvailable.title}"`,
+      description: `This is your first available skill — begin here to build a strong foundation.`,
+      icon: 'play',
+      priority: 0,
+      createdAt: now,
+      skillNodeId: firstAvailable.id,
+    });
+  }
+
+  items.push({
+    id: nextInboxId(),
+    action: 'set-goal',
+    title: 'Set a learning goal for this week',
+    description: 'Defining a clear target helps you stay focused and measure progress.',
+    icon: 'target',
+    priority: 1,
+    createdAt: now,
+  });
+
+  items.push({
+    id: nextInboxId(),
+    action: 'export-progress',
+    title: 'Explore your skill map',
+    description: 'See how skills connect and plan your learning path.',
+    icon: 'map',
+    priority: 2,
+    createdAt: now,
+  });
+
+  return items;
+}
+
+interface GlobalInboxContext {
+  skillNodes: readonly SkillNode[];
+  activeSkillNodeId?: string;
+  messageCount: number;
+  userMessage: string;
+  now: number;
+}
+
+/**
+ * Generate global inbox items from interaction context.
+ * Called after each message exchange and on skill completion.
+ */
+export function generateInteractionInboxItems(context: GlobalInboxContext): GlobalInboxItem[] {
+  const items: GlobalInboxItem[] = [];
+  const lower = context.userMessage.toLowerCase();
+
+  // After 3+ messages, suggest practice for the active skill
+  const activeSkill = context.skillNodes.find((n) => n.id === context.activeSkillNodeId);
+  if (context.messageCount >= 3 && activeSkill && activeSkill.status === 'in-progress') {
+    items.push({
+      id: nextInboxId(),
+      action: 'practice',
+      title: `Practice "${activeSkill.title}" with a quick quiz`,
+      description: `You've exchanged several messages — test your understanding with a challenge.`,
+      icon: 'dumbbell',
+      priority: 1,
+      createdAt: context.now,
+      skillNodeId: activeSkill.id,
+    });
+  }
+
+  // Detect struggle keywords → suggest explain branch
+  if (/\b(stuck|confused|don'?t understand|hard|struggling|lost)\b/.test(lower) && activeSkill) {
+    items.push({
+      id: nextInboxId(),
+      action: 'branch',
+      title: `Try an Explain session for "${activeSkill.title}"`,
+      description: 'Build a clearer mental model with analogies and step-by-step breakdowns.',
+      icon: 'lightbulb',
+      priority: 0,
+      createdAt: context.now,
+      skillNodeId: activeSkill.id,
+    });
+  }
+
+  return items;
+}
+
+/**
+ * Generate inbox items when a skill is completed.
+ */
+export function generateSkillCompletionInboxItems(
+  completedSkill: SkillNode,
+  skillNodes: readonly SkillNode[],
+  now: number,
+): GlobalInboxItem[] {
+  const items: GlobalInboxItem[] = [];
+
+  // Suggest reviewing the completed skill later
+  items.push({
+    id: nextInboxId(),
+    action: 'review',
+    title: `Review "${completedSkill.title}" later`,
+    description: 'Spaced review strengthens retention — revisit this topic in a few sessions.',
+    icon: 'refresh-cw',
+    priority: 2,
+    createdAt: now,
+    skillNodeId: completedSkill.id,
+  });
+
+  // Suggest starting the next available skill
+  const nextAvailable = skillNodes.find(
+    (n) => n.id !== completedSkill.id && n.status === 'available',
+  );
+  if (nextAvailable) {
+    items.push({
+      id: nextInboxId(),
+      action: 'start-skill',
+      title: `Start next: "${nextAvailable.title}"`,
+      description: `You unlocked this skill — keep the momentum going.`,
+      icon: 'play',
+      priority: 0,
+      createdAt: now,
+      skillNodeId: nextAvailable.id,
+    });
+  }
+
+  return items;
+}
+
+/**
+ * Dedup global inbox items by action + skillNodeId.
+ */
+export function dedupeInboxItems(
+  existing: readonly GlobalInboxItem[],
+  incoming: readonly GlobalInboxItem[],
+): GlobalInboxItem[] {
+  const seen = new Set(existing.map((i) => `${i.action}|${i.skillNodeId ?? 'global'}`));
+  const merged = [...existing];
+  for (const item of incoming) {
+    const key = `${item.action}|${item.skillNodeId ?? 'global'}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+  return merged;
 }

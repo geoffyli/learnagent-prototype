@@ -1,6 +1,6 @@
 import { ChangeEvent, SetStateAction, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, Circle, CircleDot, Lock, Map as MapIcon, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Circle, CircleDot, Inbox, Lock, Map as MapIcon, Sparkles, X } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
@@ -8,7 +8,7 @@ import WelcomePage from './components/WelcomePage';
 import CreatorBuilderPage from './components/CreatorBuilderPage';
 import CourseDetailPage from './components/CourseDetailPage';
 import { COURSE_COMMUNITY } from './data/courseCommunity';
-import { MOTION_DURATION, springFor, tweenFor } from './motion/tokens';
+import { durationFor, MOTION_DURATION, MOTION_EASE, springFor, tweenFor } from './motion/tokens';
 import { fadeSlideY, staggerContainer } from './motion/variants';
 import {
   completeSkillAndUnlock,
@@ -24,6 +24,7 @@ import {
   BranchSessionRecord,
   BranchSource,
   ChatMessage,
+  GlobalInboxItem,
   LearningPlanReport,
   MainSessionRecord,
   MainSessionPhase,
@@ -36,7 +37,14 @@ import {
 import type { ContentBlock } from './types/content-blocks';
 import { CONTENT_PACK_LABELS, TOPIC_DEFAULT_PACKS } from './data/richReplies';
 import { resolvePackById, resolveRichContent } from './state/content-resolver';
-import { dedupeSuggestions, generateNodeSuggestions } from './state/skill-tree-agent';
+import {
+  dedupeSuggestions,
+  dedupeInboxItems,
+  generateInitialInboxItems,
+  generateInteractionInboxItems,
+  generateNodeSuggestions,
+  generateSkillCompletionInboxItems,
+} from './state/skill-tree-agent';
 import type { CoursePackageConfig } from './types/course-package';
 
 // Legacy export retained for existing prototype files that still import this type.
@@ -780,24 +788,16 @@ function CanvasSlideOver({
   skillTreeProps: {
     nodes: SessionNode[];
     activeSessionId: string;
-    activeSuggestions: AgentNodeSuggestion[];
     skillNodes: SkillNode[];
     mainPhase: MainSessionPhase;
     planningState: PlanningState | null;
     onSelectSession: (sessionId: string) => void;
     onSelectSkillNode: (skillNodeId: string) => void;
-    onAcceptSuggestion: (suggestionId: string) => void;
-    onDismissSuggestion: (suggestionId: string) => void;
   };
 }) {
-  const reducedMotion = useReducedMotion() ?? false;
   const hasContent = blocks.length > 0;
   return (
-    <motion.div
-      initial={{ opacity: 0, x: reducedMotion ? 0 : 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: reducedMotion ? 0 : 24 }}
-      transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
+    <div
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm"
     >
       <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
@@ -835,7 +835,7 @@ function CanvasSlideOver({
           <RichContentPanel blocks={blocks} />
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -926,6 +926,8 @@ function App() {
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [canvasView, setCanvasView] = useState<'content' | 'skill-tree'>('content');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [globalInbox, setGlobalInbox] = useState<GlobalInboxItem[]>([]);
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   const allCoursePackages = useMemo(
     () => [...COURSE_PACKAGES, ...publishedPackages],
@@ -1228,6 +1230,10 @@ function App() {
       });
 
       setIsGeneratingPlan(false);
+
+      // Pre-seed global inbox with proactive items
+      const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
+      setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
     }, 1800);
   };
 
@@ -1472,6 +1478,20 @@ function App() {
     });
     setAgentSuggestionsBySession(activeSessionId, (prev) => dedupeSuggestions(prev, suggestions));
 
+    // Generate global inbox items from interaction context
+    const activeSessionRecord = sessions[activeSessionId];
+    const msgCount = activeSessionRecord ? activeSessionRecord.messages.length : 0;
+    const inboxItems = generateInteractionInboxItems({
+      skillNodes: mainSkillNodes,
+      activeSkillNodeId,
+      messageCount: msgCount,
+      userMessage: rawMessage,
+      now: nextTimeline(),
+    });
+    if (inboxItems.length > 0) {
+      setGlobalInbox((prev) => dedupeInboxItems(prev, inboxItems));
+    }
+
     if (contentResult.rich) {
       setSessionRichBlocks(activeSessionId, contentResult.rich);
       setCanvasView('content');
@@ -1572,8 +1592,35 @@ function App() {
     setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
   };
 
-  const handleDismissSuggestion = (sessionId: string, suggestionId: string) => {
-    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
+  /* ---------- Global inbox handlers ---------- */
+
+  const handleInboxAccept = (itemId: string) => {
+    const item = globalInbox.find((i) => i.id === itemId);
+    if (!item) return;
+
+    switch (item.action) {
+      case 'start-skill':
+      case 'practice':
+      case 'explore-topic':
+      case 'review':
+        if (item.skillNodeId) handleSelectSkillNode(item.skillNodeId);
+        break;
+      case 'export-progress':
+        setCanvasView('skill-tree');
+        setCanvasOpen(true);
+        break;
+      case 'set-goal':
+      case 'branch':
+        // For demo: just dismiss — these would trigger modals/chat in a real product
+        break;
+    }
+
+    setGlobalInbox((prev) => prev.filter((i) => i.id !== itemId));
+    setInboxOpen(false);
+  };
+
+  const handleInboxDismiss = (itemId: string) => {
+    setGlobalInbox((prev) => prev.filter((i) => i.id !== itemId));
   };
 
   const handleSelectSkillNode = (skillNodeId: string) => {
@@ -1655,6 +1702,14 @@ function App() {
         },
       };
     });
+
+    // Generate global inbox items for skill completion
+    const completedSkill = mainSkillNodes.find((n) => n.id === skillNodeId);
+    if (completedSkill) {
+      const updatedNodes = completeSkillAndUnlock(mainSkillNodes, skillNodeId);
+      const completionItems = generateSkillCompletionInboxItems(completedSkill, updatedNodes, nextTimeline());
+      setGlobalInbox((prev) => dedupeInboxItems(prev, completionItems));
+    }
   };
 
   const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
@@ -1899,9 +1954,19 @@ function App() {
         </div>
       </motion.header>
 
+      {(() => {
+        const showCanvas = canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0);
+        const dur = durationFor(reducedMotion, MOTION_DURATION.base);
+        const ease = MOTION_EASE.enter;
+        return (
       <motion.main className="mt-3 flex h-[calc(100vh-5.5rem)] gap-3 overflow-hidden" variants={pageItemVariants}>
         {/* Main chat column */}
-        <div className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm ${canvasOpen ? '' : 'mx-auto max-w-3xl'}`}>
+        <motion.div
+          animate={{ flexBasis: showCanvas ? '35%' : '100%', maxWidth: showCanvas ? '100%' : '48rem' }}
+          transition={{ duration: dur, ease }}
+          style={{ flexShrink: 0, flexGrow: 1 }}
+          className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
+        >
           {/* Skill progress bar — only show in learning phase */}
           {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
             <SkillProgressBar
@@ -1944,34 +2009,107 @@ function App() {
               onAcceptSuggestion={(id) => handleAcceptSuggestion(activeSessionId, id)}
             />
           </div>
-        </div>
+        </motion.div>
 
-        {/* Canvas slide-over */}
+        {/* Canvas panel — always mounted, animates width */}
+        <motion.div
+          animate={{
+            flexBasis: showCanvas ? '65%' : '0%',
+            opacity: showCanvas ? 1 : 0,
+          }}
+          transition={{ duration: dur, ease }}
+          style={{ flexShrink: 0, overflow: 'hidden' }}
+          className="hidden lg:block"
+        >
+          {(canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
+            <CanvasSlideOver
+              view={canvasView}
+              blocks={visibleRichBlocks}
+              onClose={() => setCanvasOpen(false)}
+              onSwitchView={setCanvasView}
+              skillTreeProps={{
+                nodes,
+                activeSessionId,
+                skillNodes: mainSkillNodes,
+                mainPhase,
+                planningState: mainSession?.planning ?? null,
+                onSelectSession: activateSession,
+                onSelectSkillNode: handleSelectSkillNode,
+              }}
+            />
+          )}
+        </motion.div>
+      </motion.main>
+        );
+      })()}
+
+      {/* ── Global Agent Inbox ── */}
+      <div className="fixed bottom-24 right-24 z-50">
         <AnimatePresence>
-          {canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
-            <motion.div className="hidden w-[65%] shrink-0 lg:block">
-              <CanvasSlideOver
-                view={canvasView}
-                blocks={visibleRichBlocks}
-                onClose={() => setCanvasOpen(false)}
-                onSwitchView={setCanvasView}
-                skillTreeProps={{
-                  nodes,
-                  activeSessionId,
-                  activeSuggestions,
-                  skillNodes: mainSkillNodes,
-                  mainPhase,
-                  planningState: mainSession?.planning ?? null,
-                  onSelectSession: activateSession,
-                  onSelectSkillNode: handleSelectSkillNode,
-                  onAcceptSuggestion: (suggestionId) => handleAcceptSuggestion(activeSessionId, suggestionId),
-                  onDismissSuggestion: (suggestionId) => handleDismissSuggestion(activeSessionId, suggestionId),
-                }}
-              />
+          {inboxOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+              className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+            >
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-800">Agent Inbox</p>
+                <p className="text-xs text-slate-500">Proactive suggestions from your learning agent</p>
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                {globalInbox.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-slate-400">No suggestions right now</p>
+                ) : (
+                  globalInbox.map((item) => (
+                    <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50/60">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{item.description}</p>
+                      </div>
+                      <div className="flex shrink-0 gap-1 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleInboxAccept(item.id)}
+                          className="rounded-md p-1 text-teal-600 transition hover:bg-teal-50"
+                          title="Accept"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInboxDismiss(item.id)}
+                          className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100"
+                          title="Dismiss"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.main>
+
+        <button
+          type="button"
+          onClick={() => setInboxOpen((prev) => !prev)}
+          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition hover:bg-teal-700 active:scale-95"
+        >
+          <Inbox className="h-5 w-5" />
+          {globalInbox.length > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+              {globalInbox.length}
+            </span>
+          )}
+        </button>
+      </div>
     </motion.div>
   );
 }
