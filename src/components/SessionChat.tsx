@@ -40,6 +40,7 @@ interface SessionChatProps {
   richBlocks?: ContentBlock[];
   canvasOpen?: boolean;
   onToggleCanvas?: () => void;
+  planningQuickActions?: Array<{ label: string; prompt: string }>;
 }
 
 interface SelectionPopover {
@@ -81,6 +82,7 @@ function getQuickActions(
   kind: SessionNode['kind'],
   mainPhase: MainSessionPhase,
   packageSuggestedActions: Array<{ label: string; prompt: string }>,
+  planningActions: Array<{ label: string; prompt: string }>,
 ): QuickAction[] {
   const suggested: QuickAction[] = packageSuggestedActions.map((item) => ({
     label: item.label,
@@ -89,7 +91,7 @@ function getQuickActions(
   }));
 
   if (kind === 'main' && mainPhase === 'planning') {
-    return [];
+    return planningActions.map((a) => ({ label: a.label, prompt: a.prompt, category: 'command' as const }));
   }
 
   if (kind === 'main') {
@@ -197,6 +199,7 @@ export default function SessionChat({
   richBlocks,
   canvasOpen,
   onToggleCanvas,
+  planningQuickActions = [],
 }: SessionChatProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [inputsBySession, setInputsBySession] = useState<Record<string, string>>({});
@@ -221,8 +224,8 @@ export default function SessionChat({
   );
 
   const quickActions = useMemo(
-    () => getQuickActions(activeNode.kind, mainPhase, packageSuggestedActions),
-    [activeNode.kind, mainPhase, packageSuggestedActions],
+    () => getQuickActions(activeNode.kind, mainPhase, packageSuggestedActions, planningQuickActions),
+    [activeNode.kind, mainPhase, packageSuggestedActions, planningQuickActions],
   );
 
   const quickActionKey = `${activeNode.kind}-${mainPhase}`;

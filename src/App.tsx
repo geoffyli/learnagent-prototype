@@ -43,6 +43,7 @@ import {
   generateSkillCompletionInboxItems,
 } from './state/skill-tree-agent';
 import type { CoursePackageConfig } from './types/course-package';
+import { getPlanningScript, type PlanningTurn } from './state/planning-conversation';
 
 // Legacy export retained for existing prototype files that still import this type.
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
@@ -532,39 +533,11 @@ function getCoursePackageById(packages: CoursePackageConfig[], id: string): Cour
   return packages.find((item) => item.id === id) ?? packages[0];
 }
 
-function summarizeIntakeForPlanning(coursePackage: CoursePackageConfig, intake: Record<string, string>): string {
-  const collected = coursePackage.intakeFields
-    .map((field) => {
-      const value = intake[field.id]?.trim();
-      if (!value) {
-        return null;
-      }
-      return `${field.label}: ${value}`;
-    })
-    .filter((item): item is string => Boolean(item));
-
-  if (collected.length === 0) {
-    return 'No learner materials were provided yet. Continue with a default profile.';
-  }
-
-  return `Learner materials received:\n- ${collected.join('\n- ')}`;
-}
-
 
 function createTimestamp(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function planningSeedMessage(coursePackage: CoursePackageConfig, intakeSummary: string): ChatMessage {
-
-  return {
-    id: 'seed-1',
-    role: 'assistant',
-    content:
-      `Let me build your personalized ${coursePackage.title} plan.\n\n${intakeSummary}\n\nI will now walk through 5 planning phases so you can see exactly how the path is generated.`,
-    timestamp: '09:00',
-  };
-}
 
 function buildPlanningState(): PlanningState {
   return {
@@ -917,7 +890,9 @@ function App() {
   const [previewPackageId, setPreviewPackageId] = useState<string | null>(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [canvasView, setCanvasView] = useState<'content' | 'skill-tree'>('content');
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planningTurnIndex, setPlanningTurnIndex] = useState(0);
+  const [planningScript, setPlanningScript] = useState<PlanningTurn[]>([]);
+  const planningTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [globalInbox, setGlobalInbox] = useState<GlobalInboxItem[]>([]);
   const [inboxOpen, setInboxOpen] = useState(false);
 
@@ -1154,9 +1129,18 @@ function App() {
       return;
     }
 
-    const intakeSummary = summarizeIntakeForPlanning(activeCoursePackage, learnerIntake);
+    // Build the planning conversation script
+    const script = getPlanningScript(activeCoursePackage, learnerIntake);
+    setPlanningScript(script);
+    setPlanningTurnIndex(0);
 
-    // Transition to planning phase immediately (shows loading overlay)
+    // Clear any prior planning timeouts
+    planningTimeoutsRef.current.forEach(clearTimeout);
+    planningTimeoutsRef.current = [];
+
+    const firstQuestion = script[0]?.agentMessage ?? 'Let me help you build a learning plan.';
+
+    // Transition to planning phase with first agent question as seed
     setSessions((prev) => {
       const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
       if (!session || session.phase !== 'setup') {
@@ -1168,50 +1152,21 @@ function App() {
           ...session,
           phase: 'planning',
           planning: buildPlanningState(),
-          messages: [planningSeedMessage(activeCoursePackage, intakeSummary)],
+          messages: [
+            {
+              id: 'planning-q-0',
+              role: 'assistant' as const,
+              content: firstQuestion,
+              timestamp: createTimestamp(),
+            },
+          ],
         },
       };
     });
 
-    setIsGeneratingPlan(true);
-
-    setTimeout(() => {
-      // Build planning state with all steps done
-      const planningState = buildPlanningState();
-      const doneSteps = planningState.steps.map((step) => ({ ...step, state: 'done' as const }));
-      const report = generateLearningReport(activeCoursePackage);
-      const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
-      const firstSkillTitle = skillNodes[0]?.title ?? 'the first node';
-
-      setSessions((prev) => {
-        const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
-        if (!session) return prev;
-        return {
-          ...prev,
-          [MAIN_SESSION_ID]: {
-            ...session,
-            phase: 'learning' as const,
-            planning: { steps: doneSteps, report },
-            skillNodes,
-            messages: [
-              ...session.messages,
-              {
-                id: 'plan-summary',
-                role: 'assistant' as const,
-                content: `Your personalized learning plan is ready. Let's start with ${firstSkillTitle}.`,
-                timestamp: createTimestamp(),
-              },
-            ],
-          },
-        };
-      });
-
-      setIsGeneratingPlan(false);
-
-      // Pre-seed global inbox with proactive items
-      const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
-      setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
-    }, 1800);
+    // Auto-open canvas to show planning steps
+    setCanvasView('skill-tree');
+    setCanvasOpen(true);
   };
 
   const handleIntakeFileUpload = (fieldId: string, event: ChangeEvent<HTMLInputElement>) => {
@@ -1400,6 +1355,115 @@ function App() {
     return sessionId;
   };
 
+  const finishPlanning = () => {
+    const report = generateLearningReport(activeCoursePackage);
+    const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
+    const firstSkillTitle = skillNodes[0]?.title ?? 'the first skill';
+
+    setSessions((prev) => {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session) return prev;
+      const doneSteps = (session.planning?.steps ?? []).map((s) => ({ ...s, state: 'done' as const }));
+      return {
+        ...prev,
+        [MAIN_SESSION_ID]: {
+          ...session,
+          phase: 'learning' as const,
+          planning: { steps: doneSteps, report },
+          skillNodes,
+          messages: [
+            ...session.messages,
+            {
+              id: nextId('msg'),
+              role: 'assistant' as const,
+              content: `Your personalized learning plan is ready. Let's start with **${firstSkillTitle}**.`,
+              timestamp: createTimestamp(),
+            },
+          ],
+        },
+      };
+    });
+
+    // Pre-seed global inbox with proactive items
+    const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
+    setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
+  };
+
+  const handlePlanningMessage = (rawMessage: string) => {
+    const script = planningScript;
+    const turnIdx = planningTurnIndex;
+    const currentTurn = script[turnIdx];
+    if (!currentTurn) return;
+
+    // 1. Append user message
+    appendMessage(MAIN_SESSION_ID, { role: 'user', content: rawMessage });
+
+    // 2. Mark current step as done
+    setSessions((prev) => {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session?.planning) return prev;
+      return {
+        ...prev,
+        [MAIN_SESSION_ID]: {
+          ...session,
+          planning: {
+            ...session.planning,
+            steps: session.planning.steps.map((s) =>
+              s.id === currentTurn.stepId ? { ...s, state: 'done' as const } : s,
+            ),
+          },
+        },
+      };
+    });
+
+    // 3. Generate agent acknowledgment after a short delay
+    const ackTimeout = setTimeout(() => {
+      const ackText = currentTurn.buildReply(rawMessage);
+      appendMessage(MAIN_SESSION_ID, { role: 'assistant', content: ackText });
+
+      const nextIdx = turnIdx + 1;
+      const nextTurn = script[nextIdx];
+
+      if (nextTurn) {
+        // Mark next step as active
+        setSessions((prev) => {
+          const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+          if (!session?.planning) return prev;
+          return {
+            ...prev,
+            [MAIN_SESSION_ID]: {
+              ...session,
+              planning: {
+                ...session.planning,
+                steps: session.planning.steps.map((s) =>
+                  s.id === nextTurn.stepId ? { ...s, state: 'active' as const } : s,
+                ),
+              },
+            },
+          };
+        });
+
+        // Post next question after another short delay
+        const questionTimeout = setTimeout(() => {
+          appendMessage(MAIN_SESSION_ID, {
+            role: 'assistant',
+            content: nextTurn.agentMessage,
+          });
+          setPlanningTurnIndex(nextIdx);
+        }, 600);
+        planningTimeoutsRef.current.push(questionTimeout);
+      } else {
+        // All steps done — transition to learning
+        setPlanningTurnIndex(script.length);
+        const transitionTimeout = setTimeout(() => {
+          finishPlanning();
+        }, 800);
+        planningTimeoutsRef.current.push(transitionTimeout);
+      }
+    }, 600);
+    planningTimeoutsRef.current.push(ackTimeout);
+  };
+
   const handleSendMessage = (
     rawMessage: string,
     options?: { displayMessage?: string },
@@ -1407,6 +1471,13 @@ function App() {
     if (!activeNode) {
       return;
     }
+
+    // During planning, delegate to the planning conversation handler
+    if (mainPhase === 'planning' && activeSessionId === MAIN_SESSION_ID) {
+      handlePlanningMessage(options?.displayMessage ?? rawMessage);
+      return;
+    }
+
     appendMessage(activeSessionId, {
       role: 'user',
       content: options?.displayMessage ?? rawMessage,
@@ -1631,6 +1702,9 @@ function App() {
   const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
   const mainSkillNodes = mainSession?.skillNodes ?? [];
   const mainPhase: MainSessionPhase = mainSession?.phase ?? 'planning';
+  const planningQuickActions = mainPhase === 'planning'
+    ? (planningScript[planningTurnIndex]?.quickActions ?? [])
+    : [];
   const isIntakeReady = activeCoursePackage.intakeFields
     .filter((field) => field.required)
     .every((field) => Boolean(learnerIntake[field.id]?.trim()));
@@ -1786,39 +1860,6 @@ function App() {
     );
   }
 
-  // Loading overlay during plan generation
-  if (isGeneratingPlan && mainPhase === 'planning') {
-    return (
-      <motion.div
-        className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
-        variants={pageVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-gray-900">
-                <Sparkles className="h-4 w-4 text-blue-600" />
-                LearnAgent Prototype
-              </p>
-              <p className="mt-1 text-base text-gray-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-gray-600">Package: {activeCoursePackage.title}</p>
-            </div>
-          </div>
-        </motion.header>
-        <div className="flex h-[calc(100vh-7.5rem)] flex-col items-center justify-center gap-4">
-          <motion.div
-            className="h-8 w-8 rounded-full border-2 border-blue-600 border-t-transparent"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          />
-          <p className="text-sm font-medium text-gray-700">Building your personalized learning plan...</p>
-        </div>
-      </motion.div>
-    );
-  }
-
   return (
     <motion.div
       className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
@@ -1909,6 +1950,7 @@ function App() {
                 inputFields: command.inputFields,
               }))}
               packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
+              planningQuickActions={planningQuickActions}
               onSendMessage={handleSendMessage}
               onCreateBranch={handleCreateBranch}
               richBlocks={visibleRichBlocks}

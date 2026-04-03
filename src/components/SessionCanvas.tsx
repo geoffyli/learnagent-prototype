@@ -132,8 +132,8 @@ function PlanningPlaceholder({
   reducedMotion: boolean;
 }) {
   return (
-    <motion.div className="flex h-full min-h-[300px] items-center justify-center p-8" variants={fadeSlideY(reducedMotion, 10)}>
-      <motion.div className="w-full max-w-sm" variants={staggerContainer(reducedMotion, 0.06, 0.02)}>
+    <motion.div className="flex h-full min-h-[300px] items-center justify-center p-8" initial="hidden" animate="visible" variants={fadeSlideY(reducedMotion, 10)}>
+      <motion.div className="w-full max-w-sm" initial="hidden" animate="visible" variants={staggerContainer(reducedMotion, 0.06, 0.02)}>
         <motion.div className="mb-5 flex items-center gap-3" variants={fadeSlideY(reducedMotion, 8)}>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
             <TreePine className="h-5 w-5 text-amber-600" />
@@ -145,7 +145,7 @@ function PlanningPlaceholder({
         </motion.div>
 
         {planningState && (
-          <motion.div className="space-y-2" variants={staggerContainer(reducedMotion, 0.06)}>
+          <motion.div className="space-y-2" initial="hidden" animate="visible" variants={staggerContainer(reducedMotion, 0.06)}>
             {planningState.steps.map((step) => {
               const activePulse = step.state === 'active' && !reducedMotion;
               return (
