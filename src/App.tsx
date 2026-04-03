@@ -18,7 +18,6 @@ import {
 } from './state/progression';
 import { applyActiveSession } from './state/session-status';
 import {
-  AgentNodeSuggestion,
   AnySessionRecord,
   BranchIntent,
   BranchSessionRecord,
@@ -38,11 +37,9 @@ import type { ContentBlock } from './types/content-blocks';
 import { CONTENT_PACK_LABELS, TOPIC_DEFAULT_PACKS } from './data/richReplies';
 import { resolvePackById, resolveRichContent } from './state/content-resolver';
 import {
-  dedupeSuggestions,
   dedupeInboxItems,
   generateInitialInboxItems,
   generateInteractionInboxItems,
-  generateNodeSuggestions,
   generateSkillCompletionInboxItems,
 } from './state/skill-tree-agent';
 import type { CoursePackageConfig } from './types/course-package';
@@ -55,7 +52,6 @@ const EMPTY_RICH_BLOCKS: ContentBlock[] = [];
 const EMPTY_RICH_BLOCKS_BY_SESSION: Record<string, ContentBlock[]> = {};
 const EMPTY_NODES: SessionNode[] = [];
 const EMPTY_SESSIONS: Record<string, AnySessionRecord> = {};
-const EMPTY_SUGGESTIONS: AgentNodeSuggestion[] = [];
 
 const DATA_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   {
@@ -717,7 +713,7 @@ function SkillProgressBar({
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white/80 px-4 py-2.5">
+    <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white/80 px-4 py-2.5">
       {skillNodes.map((skill) => {
         const isActive = skill.id === activeSkillNodeId;
         const isLocked = skill.status === 'locked';
@@ -733,16 +729,16 @@ function SkillProgressBar({
             whileTap={reducedMotion || isLocked ? undefined : { scale: 0.97 }}
             className={`group relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
               isActive
-                ? 'ring-2 ring-teal-400 ring-offset-1'
+                ? 'ring-2 ring-blue-400 ring-offset-1'
                 : ''
             } ${
               isCompleted
                 ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
                 : isInProgress
-                  ? 'border border-teal-200 bg-teal-50 text-teal-700'
+                  ? 'border border-blue-200 bg-blue-50 text-blue-700'
                   : isLocked
-                    ? 'border border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
-                    : 'border border-slate-200 bg-white text-slate-700 hover:border-teal-300'
+                    ? 'border border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                    : 'border border-gray-200 bg-white text-gray-700 hover:border-blue-300'
             }`}
           >
             {isCompleted ? (
@@ -759,7 +755,7 @@ function SkillProgressBar({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
-                className="ml-0.5 rounded-full bg-teal-600 p-0.5 text-white hover:bg-teal-700"
+                className="ml-0.5 rounded-full bg-blue-600 p-0.5 text-white hover:bg-blue-700"
                 title="Mark as mastered"
               >
                 <CheckCircle2 className="h-3 w-3" />
@@ -798,14 +794,14 @@ function CanvasSlideOver({
   const hasContent = blocks.length > 0;
   return (
     <div
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm"
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm"
     >
-      <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onSwitchView('skill-tree')}
-            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-teal-50 text-teal-700' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-blue-50 text-blue-700' : 'text-gray-400 hover:text-gray-600'}`}
           >
             Skill Map
           </button>
@@ -813,7 +809,7 @@ function CanvasSlideOver({
             <button
               type="button"
               onClick={() => onSwitchView('content')}
-              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}
             >
               Artifact
             </button>
@@ -822,7 +818,7 @@ function CanvasSlideOver({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
           title="Close panel"
         >
           <X className="h-4 w-4" />
@@ -849,7 +845,6 @@ interface WorkspaceState {
   createdAt: number;
   updatedAt: number;
   richBlocksBySession: Record<string, ContentBlock[]>;
-  agentSuggestionsBySession: Record<string, AgentNodeSuggestion[]>;
   nodes: SessionNode[];
   sessions: Record<string, AnySessionRecord>;
   activeSessionId: string;
@@ -884,9 +879,6 @@ function createWorkspace(
     createdAt: now,
     updatedAt: now,
     richBlocksBySession: {
-      [MAIN_SESSION_ID]: [],
-    },
-    agentSuggestionsBySession: {
       [MAIN_SESSION_ID]: [],
     },
     nodes: [
@@ -989,19 +981,6 @@ function App() {
     }));
   };
 
-  const setAgentSuggestionsBySession = (
-    sessionId: string,
-    next: SetStateAction<AgentNodeSuggestion[]>,
-  ) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      agentSuggestionsBySession: {
-        ...workspace.agentSuggestionsBySession,
-        [sessionId]: resolveState(workspace.agentSuggestionsBySession[sessionId] ?? EMPTY_SUGGESTIONS, next),
-      },
-    }));
-  };
-
   const setSessions = (next: SetStateAction<Record<string, AnySessionRecord>>) => {
     updateActiveWorkspace((workspace) => ({
       ...workspace,
@@ -1019,7 +998,6 @@ function App() {
   const richBlocksBySession = workspaceState?.richBlocksBySession ?? EMPTY_RICH_BLOCKS_BY_SESSION;
   const nodes = workspaceState?.nodes ?? EMPTY_NODES;
   const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
-  const agentSuggestionsBySession = workspaceState?.agentSuggestionsBySession ?? {};
   const learnerIntake = workspaceState?.learnerIntake ?? {};
   const activeCoursePackage = getCoursePackageById(
     allCoursePackages,
@@ -1027,7 +1005,6 @@ function App() {
   );
   const activeSessionId = workspaceState?.activeSessionId ?? MAIN_SESSION_ID;
   const activeRichBlocks = richBlocksBySession[activeSessionId] ?? EMPTY_RICH_BLOCKS;
-  const activeSuggestions = agentSuggestionsBySession[activeSessionId] ?? EMPTY_SUGGESTIONS;
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, SessionNode>();
@@ -1400,7 +1377,6 @@ function App() {
       };
     });
     setSessionRichBlocks(sessionId, []);
-    setAgentSuggestionsBySession(sessionId, []);
 
     // Link back: only update the skill node's sessionId for topic sessions
     // Ask/explain branches must not overwrite the topic session link
@@ -1467,17 +1443,6 @@ function App() {
       : contentResult.text;
     appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
 
-    const suggestions = generateNodeSuggestions({
-      parentSessionId: activeSessionId,
-      parentTitle: activeNode.title,
-      skillNodeId: activeNode.skillNodeId,
-      userMessage: rawMessage,
-      assistantMessage: assistantText,
-      siblingNodes: nodes,
-      now: nextTimeline(),
-    });
-    setAgentSuggestionsBySession(activeSessionId, (prev) => dedupeSuggestions(prev, suggestions));
-
     // Generate global inbox items from interaction context
     const activeSessionRecord = sessions[activeSessionId];
     const msgCount = activeSessionRecord ? activeSessionRecord.messages.length : 0;
@@ -1541,55 +1506,6 @@ function App() {
       ],
       skillNodeId: currentSkillNodeId,
     });
-  };
-
-  const handleAcceptSuggestion = (sessionId: string, suggestionId: string) => {
-    const suggestion = (agentSuggestionsBySession[sessionId] ?? []).find((item) => item.id === suggestionId);
-    if (!suggestion || !activeWorkspaceId) {
-      return;
-    }
-
-    if (suggestion.action === 'create') {
-      const siblingCount = nodes.filter((node) => node.parentId === sessionId).length;
-      createSubSession({
-        parentId: sessionId,
-        kind: 'branch',
-        intent: suggestion.intent ?? 'ask',
-        source: 'agent-suggestion',
-        title: suggestion.title,
-        originText: suggestion.originText,
-        promptProfile: suggestion.promptProfile,
-        contextNote: suggestion.contextNote,
-        seedMessages: [
-          {
-            id: nextId('msg'),
-            role: 'assistant',
-            content: suggestion.seedIntro,
-            timestamp: createTimestamp(),
-          },
-        ],
-        skillNodeId: suggestion.skillNodeId,
-        rank: siblingCount,
-      });
-    }
-
-    if (suggestion.action === 'retitle') {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === suggestion.targetSessionId ? { ...node, title: suggestion.nextTitle } : node,
-        ),
-      );
-    }
-
-    if (suggestion.action === 'reprioritize') {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === suggestion.targetSessionId ? { ...node, rank: suggestion.nextRank } : node,
-        ),
-      );
-    }
-
-    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
   };
 
   /* ---------- Global inbox handlers ---------- */
@@ -1766,7 +1682,7 @@ function App() {
   if (mainPhase === 'setup') {
     return (
       <motion.div
-        className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+        className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
@@ -1774,14 +1690,14 @@ function App() {
         <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="h-4 w-4 shrink-0 text-teal-600" />
-              <p className="truncate text-sm font-semibold text-slate-900">{activeCoursePackage.title}</p>
+              <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
+              <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
             </div>
             <motion.button
               type="button"
               onClick={handleBackToWelcome}
               whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
               title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -1794,26 +1710,26 @@ function App() {
           variants={pageItemVariants}
         >
           <div className="panel-surface w-full max-w-2xl px-6 py-8 text-center sm:px-8">
-            <p className="font-heading text-xl font-semibold text-slate-900">{activeCoursePackage.intakeTitle}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{activeCoursePackage.intakeDescription}</p>
+            <p className="font-heading text-xl font-semibold text-gray-900">{activeCoursePackage.intakeTitle}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{activeCoursePackage.intakeDescription}</p>
 
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4 text-left">
-              <p className="text-base font-semibold text-slate-700">Creator Guidance</p>
-              <p className="mt-1 text-[13px] leading-relaxed text-slate-600">{activeCoursePackage.creatorPrompt}</p>
+            <div className="mt-5 rounded-xl border border-gray-200 bg-white/80 px-4 py-4 text-left">
+              <p className="text-base font-semibold text-gray-700">Creator Guidance</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{activeCoursePackage.creatorPrompt}</p>
             </div>
 
             <div className="mt-4 space-y-3 text-left">
               {activeCoursePackage.intakeFields.map((field) => {
                 const currentValue = learnerIntake[field.id] ?? '';
                 return (
-                  <div key={field.id} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3">
-                    <p className="text-base font-semibold text-slate-700">
+                  <div key={field.id} className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+                    <p className="text-base font-semibold text-gray-700">
                       {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
                     </p>
-                    <p className="mt-1 text-[13px] text-slate-600">{field.description}</p>
+                    <p className="mt-1 text-[13px] text-gray-600">{field.description}</p>
 
                     {field.type === 'file' ? (
-                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-300 hover:text-teal-700">
+                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:text-blue-700">
                         Upload {field.label}
                         <input
                           type="file"
@@ -1828,11 +1744,11 @@ function App() {
                         value={currentValue}
                         onChange={(event) => handleIntakeTextChange(field.id, event.target.value)}
                         placeholder={field.placeholder}
-                        className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
+                        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
                       />
                     )}
 
-                    <p className="mt-2 text-[13px] text-slate-600">
+                    <p className="mt-2 text-[13px] text-gray-600">
                       {currentValue ? `Provided: ${currentValue}` : 'No input yet.'}
                     </p>
                   </div>
@@ -1844,7 +1760,7 @@ function App() {
               <button
                 type="button"
                 onClick={handleFillSampleIntake}
-                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
               >
                 Fill Sample Inputs
               </button>
@@ -1857,12 +1773,12 @@ function App() {
               whileHover={reducedMotion ? undefined : { y: -1 }}
               whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               transition={springFor(reducedMotion, 'snappy')}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               Start Learning
             </motion.button>
             {!isIntakeReady ? (
-              <p className="mt-2 text-[13px] text-slate-600">Complete required fields to continue.</p>
+              <p className="mt-2 text-[13px] text-gray-600">Complete required fields to continue.</p>
             ) : null}
           </div>
         </motion.main>
@@ -1874,7 +1790,7 @@ function App() {
   if (isGeneratingPlan && mainPhase === 'planning') {
     return (
       <motion.div
-        className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+        className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
@@ -1882,22 +1798,22 @@ function App() {
         <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
+              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-gray-900">
+                <Sparkles className="h-4 w-4 text-blue-600" />
                 LearnAgent Prototype
               </p>
-              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
+              <p className="mt-1 text-base text-gray-700">{activeWorkspace.title}</p>
+              <p className="mt-0.5 text-[13px] text-gray-600">Package: {activeCoursePackage.title}</p>
             </div>
           </div>
         </motion.header>
         <div className="flex h-[calc(100vh-7.5rem)] flex-col items-center justify-center gap-4">
           <motion.div
-            className="h-8 w-8 rounded-full border-2 border-teal-600 border-t-transparent"
+            className="h-8 w-8 rounded-full border-2 border-blue-600 border-t-transparent"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           />
-          <p className="text-sm font-medium text-slate-700">Building your personalized learning plan...</p>
+          <p className="text-sm font-medium text-gray-700">Building your personalized learning plan...</p>
         </div>
       </motion.div>
     );
@@ -1905,7 +1821,7 @@ function App() {
 
   return (
     <motion.div
-      className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+      className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
       variants={pageVariants}
       initial="hidden"
       animate="visible"
@@ -1913,13 +1829,13 @@ function App() {
       <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="h-4 w-4 shrink-0 text-teal-600" />
-            <p className="truncate text-sm font-semibold text-slate-900">{activeCoursePackage.title}</p>
-            <span className="hidden text-xs text-slate-400 md:inline">/</span>
+            <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
+            <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
+            <span className="hidden text-xs text-gray-400 md:inline">/</span>
             <AnimatePresence mode="wait" initial={false}>
               <motion.p
                 key={activeSessionId}
-                className="hidden truncate text-xs text-slate-500 md:block"
+                className="hidden truncate text-xs text-gray-500 md:block"
                 initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: reducedMotion ? 0 : -3 }}
@@ -1935,7 +1851,7 @@ function App() {
                 type="button"
                 onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
                 whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-teal-300 bg-teal-50 text-teal-700' : 'border-slate-200 bg-white text-slate-500 hover:border-teal-200 hover:text-teal-600'}`}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-500 hover:border-blue-200 hover:text-blue-600'}`}
                 title="Skill Map"
               >
                 <MapIcon className="h-3.5 w-3.5" />
@@ -1945,7 +1861,7 @@ function App() {
               type="button"
               onClick={handleBackToWelcome}
               whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
               title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -1965,7 +1881,7 @@ function App() {
           animate={{ flexBasis: showCanvas ? '35%' : '100%', maxWidth: showCanvas ? '100%' : '48rem' }}
           transition={{ duration: dur, ease }}
           style={{ flexShrink: 0, flexGrow: 1 }}
-          className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
+          className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
         >
           {/* Skill progress bar — only show in learning phase */}
           {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
@@ -2005,8 +1921,6 @@ function App() {
                   setCanvasOpen(true);
                 }
               }}
-              agentSuggestions={activeSuggestions}
-              onAcceptSuggestion={(id) => handleAcceptSuggestion(activeSessionId, id)}
             />
           </div>
         </motion.div>
@@ -2052,30 +1966,30 @@ function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-              className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+              className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
             >
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-800">Agent Inbox</p>
-                <p className="text-xs text-slate-500">Proactive suggestions from your learning agent</p>
+              <div className="border-b border-gray-100 px-4 py-3">
+                <p className="text-sm font-semibold text-gray-800">Agent Inbox</p>
+                <p className="text-xs text-gray-500">Proactive suggestions from your learning agent</p>
               </div>
-              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                 {globalInbox.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-slate-400">No suggestions right now</p>
+                  <p className="px-4 py-8 text-center text-sm text-gray-400">No suggestions right now</p>
                 ) : (
                   globalInbox.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50/60">
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                    <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-gray-50/60">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                         <Sparkles className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-800">{item.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{item.description}</p>
+                        <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">{item.description}</p>
                       </div>
                       <div className="flex shrink-0 gap-1 pt-0.5">
                         <button
                           type="button"
                           onClick={() => handleInboxAccept(item.id)}
-                          className="rounded-md p-1 text-teal-600 transition hover:bg-teal-50"
+                          className="rounded-md p-1 text-blue-600 transition hover:bg-blue-50"
                           title="Accept"
                         >
                           <Check className="h-4 w-4" />
@@ -2083,7 +1997,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => handleInboxDismiss(item.id)}
-                          className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100"
+                          className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100"
                           title="Dismiss"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -2100,7 +2014,7 @@ function App() {
         <button
           type="button"
           onClick={() => setInboxOpen((prev) => !prev)}
-          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition hover:bg-teal-700 active:scale-95"
+          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700 active:scale-95"
         >
           <Inbox className="h-5 w-5" />
           {globalInbox.length > 0 && (

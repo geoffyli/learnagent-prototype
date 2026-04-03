@@ -50,13 +50,13 @@ function CodeBlockView({ block }: { block: CodeBlock }) {
 
   return (
     <motion.div
-      className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 text-sm shadow-[0_12px_30px_rgba(2,6,23,0.35)]"
+      className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-950 text-sm shadow-[0_12px_30px_rgba(2,6,23,0.35)]"
       variants={staggerContainer(reducedMotion, 0.04)}
       initial="hidden"
       animate="visible"
     >
       <motion.div
-        className="flex items-center justify-between border-b border-slate-800 px-4 py-2"
+        className="flex items-center justify-between border-b border-gray-800 px-4 py-2"
         variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
       >
         <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ function CodeBlockView({ block }: { block: CodeBlock }) {
             <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
           </div>
           {block.filename && (
-            <span className="ml-1 font-mono text-[11px] text-slate-400">{block.filename}</span>
+            <span className="ml-1 font-mono text-[11px] text-gray-400">{block.filename}</span>
           )}
         </div>
 
@@ -76,7 +76,7 @@ function CodeBlockView({ block }: { block: CodeBlock }) {
           whileHover={reducedMotion ? undefined : { y: -1 }}
           whileTap={reducedMotion ? undefined : { scale: 0.96 }}
           transition={springFor(reducedMotion, 'snappy')}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-gray-400 transition hover:bg-gray-800 hover:text-gray-200"
         >
           <AnimatePresence mode="wait" initial={false}>
             {copied ? (
@@ -118,7 +118,7 @@ function CodeBlockView({ block }: { block: CodeBlock }) {
       </motion.div>
 
       <motion.pre
-        className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-slate-200"
+        className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-gray-200"
         variants={fadeSlideY(reducedMotion, 8, MOTION_DURATION.base)}
       >
         <code>{block.value}</code>
@@ -132,21 +132,21 @@ function ComparisonTableView({ block }: { block: ComparisonTableBlock }) {
 
   return (
     <motion.div
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
       variants={staggerContainer(reducedMotion, 0.04)}
       initial="hidden"
       animate="visible"
     >
       {block.title && (
-        <motion.div className="border-b border-slate-100 px-4 py-3" variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}>
-          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+        <motion.div className="border-b border-gray-100 px-4 py-3" variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}>
+          <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
         </motion.div>
       )}
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50">
-            <th className="px-4 py-2.5 text-left font-semibold text-slate-500">Aspect</th>
-            <th className="px-4 py-2.5 text-left font-semibold text-teal-700">{block.leftLabel}</th>
+          <tr className="border-b border-gray-100 bg-gray-50">
+            <th className="px-4 py-2.5 text-left font-semibold text-gray-500">Aspect</th>
+            <th className="px-4 py-2.5 text-left font-semibold text-blue-700">{block.leftLabel}</th>
             <th className="px-4 py-2.5 text-left font-semibold text-violet-700">{block.rightLabel}</th>
           </tr>
         </thead>
@@ -160,11 +160,11 @@ function ComparisonTableView({ block }: { block: ComparisonTableBlock }) {
                 ...tweenFor(reducedMotion, MOTION_DURATION.base),
                 delay: reducedMotion ? 0 : i * 0.04,
               }}
-              className={`border-b border-slate-100 last:border-0 ${i % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}`}
+              className={`border-b border-gray-100 last:border-0 ${i % 2 === 1 ? 'bg-gray-50/60' : 'bg-white'}`}
             >
-              <td className="px-4 py-2.5 font-medium text-slate-600">{row.aspect}</td>
-              <td className="px-4 py-2.5 text-slate-700">{row.left}</td>
-              <td className="px-4 py-2.5 text-slate-700">{row.right}</td>
+              <td className="px-4 py-2.5 font-medium text-gray-600">{row.aspect}</td>
+              <td className="px-4 py-2.5 text-gray-700">{row.left}</td>
+              <td className="px-4 py-2.5 text-gray-700">{row.right}</td>
             </motion.tr>
           ))}
         </tbody>
@@ -187,10 +187,10 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
   };
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <p className="font-heading text-base font-semibold text-slate-900">{block.topic} - Flashcards</p>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <p className="font-heading text-base font-semibold text-gray-900">{block.topic} - Flashcards</p>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
           {index + 1} / {total}
         </span>
       </div>
@@ -209,16 +209,16 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
               <button
                 type="button"
                 onClick={() => setFlipped((f) => !f)}
-                className="group relative w-full cursor-pointer rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 text-left"
+                className="group relative w-full cursor-pointer rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6 text-left"
                 style={{ minHeight: 140 }}
               >
-                <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                <span className="mb-3 inline-block rounded-lg border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-500">
                   {flipped ? 'Answer' : 'Question'}
                 </span>
-                <p className={`text-sm leading-relaxed ${flipped ? 'text-teal-800' : 'text-slate-800'}`}>
+                <p className={`text-sm leading-relaxed ${flipped ? 'text-blue-800' : 'text-gray-800'}`}>
                   {flipped ? card.answer : card.question}
                 </p>
-                <p className="mt-3 text-xs text-slate-500 group-hover:text-slate-600">
+                <p className="mt-3 text-xs text-gray-500 group-hover:text-gray-600">
                   {flipped ? 'Click to see question' : 'Click to reveal answer'}
                 </p>
               </button>
@@ -232,23 +232,23 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
                 style={{ minHeight: 140, transformStyle: 'preserve-3d' }}
               >
                 <div
-                  className="absolute inset-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6"
+                  className="absolute inset-0 rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6"
                   style={{ backfaceVisibility: 'hidden' }}
                 >
-                  <span className="mb-3 inline-block rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                  <span className="mb-3 inline-block rounded-lg border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-500">
                     Question
                   </span>
-                  <p className="text-sm leading-relaxed text-slate-800">{card.question}</p>
+                  <p className="text-sm leading-relaxed text-gray-800">{card.question}</p>
                 </div>
 
                 <div
-                  className="absolute inset-0 rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6"
+                  className="absolute inset-0 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
-                  <span className="mb-3 inline-block rounded-lg border border-teal-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-teal-600">
+                  <span className="mb-3 inline-block rounded-lg border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-blue-600">
                     Answer
                   </span>
-                  <p className="text-sm leading-relaxed text-teal-800">{card.answer}</p>
+                  <p className="text-sm leading-relaxed text-blue-800">{card.answer}</p>
                 </div>
 
                 <div className="pointer-events-none opacity-0" style={{ minHeight: 140 }} />
@@ -258,13 +258,13 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3">
+      <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
         <motion.button
           type="button"
           disabled={index === 0}
           onClick={() => goTo(index - 1)}
           whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Prev
         </motion.button>
@@ -276,7 +276,7 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
             setIndex(0);
           }}
           whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-slate-500 transition hover:bg-slate-100"
+          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-gray-500 transition hover:bg-gray-100"
         >
           <RotateCcw className="h-3 w-3" /> Restart
         </motion.button>
@@ -286,7 +286,7 @@ function FlashcardDeckView({ block }: { block: FlashcardDeckBlock }) {
           disabled={index === total - 1}
           onClick={() => goTo(index + 1)}
           whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next <ChevronRight className="h-3.5 w-3.5" />
         </motion.button>
@@ -307,26 +307,26 @@ function ConceptMapView({ block }: { block: ConceptMapBlock }) {
   );
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+      <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+        <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
       </div>
 
       <div className="grid gap-3 p-4 md:grid-cols-3">
-        <div className="rounded-xl border border-teal-200 bg-teal-50/70 p-3">
-          <p className="text-sm font-semibold text-teal-700">Core</p>
+        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
+          <p className="text-sm font-semibold text-blue-700">Core</p>
           <div className="mt-2 space-y-1.5">
             {grouped.core.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-gray-800">{node.label}</p>
             ))}
           </div>
         </div>
 
-        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
-          <p className="text-sm font-semibold text-blue-700">Support</p>
+        <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3">
+          <p className="text-sm font-semibold text-sky-700">Support</p>
           <div className="mt-2 space-y-1.5">
             {grouped.support.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-gray-800">{node.label}</p>
             ))}
           </div>
         </div>
@@ -335,19 +335,19 @@ function ConceptMapView({ block }: { block: ConceptMapBlock }) {
           <p className="text-sm font-semibold text-rose-700">Risk</p>
           <div className="mt-2 space-y-1.5">
             {grouped.risk.map((node) => (
-              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-800">{node.label}</p>
+              <p key={node.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-gray-800">{node.label}</p>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="border-t border-slate-100 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-700">Connections</p>
+      <div className="border-t border-gray-100 px-4 py-3">
+        <p className="text-sm font-semibold text-gray-700">Connections</p>
         <div className="mt-2 space-y-1.5">
           {block.edges.map((edge) => (
-            <p key={`${edge.from}-${edge.to}-${edge.label ?? ''}`} className="text-sm text-slate-600">
-              <span className="font-semibold text-slate-800">{edge.from}</span>{' -> '}<span className="font-semibold text-slate-800">{edge.to}</span>
-              {edge.label ? <span className="text-slate-500"> ({edge.label})</span> : null}
+            <p key={`${edge.from}-${edge.to}-${edge.label ?? ''}`} className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-800">{edge.from}</span>{' -> '}<span className="font-semibold text-gray-800">{edge.to}</span>
+              {edge.label ? <span className="text-gray-500"> ({edge.label})</span> : null}
             </p>
           ))}
         </div>
@@ -360,9 +360,9 @@ function TimelineView({ block }: { block: TimelineBlock }) {
   const reducedMotion = useReducedMotion() ?? false;
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+      <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+        <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
       </div>
       <div className="space-y-3 p-4">
         {block.steps.map((step, index) => {
@@ -377,17 +377,17 @@ function TimelineView({ block }: { block: TimelineBlock }) {
                 ) : isActive ? (
                   <CircleDot className="h-4 w-4 text-amber-600" />
                 ) : (
-                  <CircleDashed className="h-4 w-4 text-slate-300" />
+                  <CircleDashed className="h-4 w-4 text-gray-300" />
                 )}
               </div>
               <div className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-xs leading-relaxed">
-                <p className="font-semibold text-slate-900">{step.title}</p>
-                <p className="mt-1 text-slate-600">{step.detail}</p>
+                <p className="font-semibold text-gray-900">{step.title}</p>
+                <p className="mt-1 text-gray-600">{step.detail}</p>
                 {step.duration ? (
-                  <p className="mt-1.5 text-[11px] text-slate-500">{step.duration}</p>
+                  <p className="mt-1.5 text-[11px] text-gray-500">{step.duration}</p>
                 ) : null}
               </div>
-              <p className="text-[11px] text-slate-400">{index + 1}</p>
+              <p className="text-[11px] text-gray-400">{index + 1}</p>
             </div>
           );
         })}
@@ -400,22 +400,22 @@ function ChecklistView({ block }: { block: ChecklistBlock }) {
   const reducedMotion = useReducedMotion() ?? false;
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+      <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+        <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
       </div>
       <div className="space-y-2.5 p-4">
         {block.items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+          <div key={item.id} className="rounded-xl border border-gray-200 bg-white px-3 py-2.5">
             <div className="flex items-start gap-2">
               {item.done ? (
                 <CircleCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
               ) : (
-                <CircleDashed className="mt-0.5 h-4 w-4 text-slate-400" />
+                <CircleDashed className="mt-0.5 h-4 w-4 text-gray-400" />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                {item.note ? <p className="mt-1 text-[11px] text-slate-500">{item.note}</p> : null}
+                <p className="text-sm font-semibold text-gray-800">{item.label}</p>
+                {item.note ? <p className="mt-1 text-[11px] text-gray-500">{item.note}</p> : null}
               </div>
             </div>
           </div>
@@ -439,7 +439,7 @@ function CalloutStackView({ block }: { block: CalloutStackBlock }) {
     },
     insight: {
       icon: <Info className="h-4 w-4" />,
-      className: 'border-blue-200 bg-blue-50 text-blue-900',
+      className: 'border-sky-200 bg-sky-50 text-sky-900',
     },
     'anti-pattern': {
       icon: <XCircle className="h-4 w-4" />,
@@ -448,10 +448,10 @@ function CalloutStackView({ block }: { block: CalloutStackBlock }) {
   };
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       {block.title ? (
-        <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+        <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+          <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
         </div>
       ) : null}
       <div className="space-y-2.5 p-4">
@@ -479,15 +479,15 @@ function MetricStripView({ block }: { block: MetricStripBlock }) {
 
   const toneClass: Record<MetricStripBlock['metrics'][number]['tone'], string> = {
     good: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-    neutral: 'border-slate-200 bg-slate-50 text-slate-900',
+    neutral: 'border-gray-200 bg-gray-50 text-gray-900',
     warn: 'border-amber-200 bg-amber-50 text-amber-900',
   };
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
       {block.title ? (
-        <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-          <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+        <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+          <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
         </div>
       ) : null}
       <div className="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -507,27 +507,27 @@ function DebugTraceView({ block }: { block: DebugTraceBlock }) {
   const reducedMotion = useReducedMotion() ?? false;
 
   const kindTone: Record<DebugTraceBlock['events'][number]['kind'], string> = {
-    render: 'text-blue-700 border-blue-200 bg-blue-50',
-    effect: 'text-teal-700 border-teal-200 bg-teal-50',
+    render: 'text-sky-700 border-sky-200 bg-sky-50',
+    effect: 'text-blue-700 border-blue-200 bg-blue-50',
     network: 'text-violet-700 border-violet-200 bg-violet-50',
     warning: 'text-rose-700 border-rose-200 bg-rose-50',
   };
 
   return (
-    <motion.div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <p className="font-heading text-base font-semibold text-slate-900">{block.title}</p>
+    <motion.div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" variants={fadeSlideY(reducedMotion, 8)}>
+      <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+        <p className="font-heading text-base font-semibold text-gray-900">{block.title}</p>
       </div>
       <div className="space-y-2 p-4 font-mono text-xs">
         {block.events.map((event) => (
-          <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2">
+          <div key={event.id} className="rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-slate-800">{event.stage}</p>
+              <p className="font-semibold text-gray-800">{event.stage}</p>
               <span className={`rounded-md border px-1.5 py-0.5 text-[11px] ${kindTone[event.kind]}`}>
                 {event.kind}
               </span>
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-600">{event.detail}</p>
+            <p className="mt-1.5 text-[11px] text-gray-600">{event.detail}</p>
           </div>
         ))}
       </div>
@@ -558,9 +558,9 @@ export default function RichContentPanel({
   if (normalizedBlocks.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center">
-          <p className="text-sm font-medium text-slate-700">No content to display yet.</p>
-          <p className="mt-1 text-xs text-slate-500">
+        <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-center">
+          <p className="text-sm font-medium text-gray-700">No content to display yet.</p>
+          <p className="mt-1 text-xs text-gray-500">
             Ask for an example, comparison, or quiz to generate rich content.
           </p>
         </div>

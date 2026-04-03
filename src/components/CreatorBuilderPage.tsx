@@ -185,7 +185,7 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
 
   return (
     <motion.div
-      className="min-h-screen px-4 py-6 text-slate-900"
+      className="min-h-screen px-4 py-6 text-gray-900"
       variants={staggerContainer(reducedMotion, 0.09, 0.03)}
       initial="hidden"
       animate="visible"
@@ -194,11 +194,11 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
         <header className="hero-shell rounded-2xl px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="inline-flex items-center gap-2 font-heading text-lg font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
+              <p className="inline-flex items-center gap-2 font-heading text-lg font-semibold text-gray-900">
+                <Sparkles className="h-4 w-4 text-blue-600" />
                 Creator Studio
               </p>
-              <p className="mt-1 text-sm text-slate-600">Build and sell agent skills, commands, and orchestration.</p>
+              <p className="mt-1 text-sm text-gray-600">Build and sell agent skills, commands, and orchestration.</p>
             </div>
             <motion.button
               type="button"
@@ -206,7 +206,7 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
               whileHover={reducedMotion ? undefined : { y: -1 }}
               whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               transition={springFor(reducedMotion, 'snappy')}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600 transition hover:border-blue-200 hover:text-blue-700"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back
@@ -233,56 +233,56 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
               </div>
             ) : null}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="font-heading text-lg font-semibold text-slate-800">Package Basics</p>
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="font-heading text-lg font-semibold text-gray-800">Package Basics</p>
               <div className="mt-3 space-y-2">
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Package title" className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
-                <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Package subtitle" className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Package title" className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" />
+                <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Package subtitle" className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="font-heading text-lg font-semibold text-slate-800">Source Material</p>
-              <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-300 hover:text-teal-700">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="font-heading text-lg font-semibold text-gray-800">Source Material</p>
+              <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:text-blue-700">
                 Upload source file
                 <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md" onChange={handleSourceUpload} className="hidden" />
               </label>
-              <p className="mt-2 text-[13px] text-slate-600">{sourceMaterialName ? `Loaded: ${sourceMaterialName}` : 'No file uploaded yet.'}</p>
+              <p className="mt-2 text-[13px] text-gray-600">{sourceMaterialName ? `Loaded: ${sourceMaterialName}` : 'No file uploaded yet.'}</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="font-heading text-lg font-semibold text-slate-800">Learner Intake Schema</p>
+                <p className="font-heading text-lg font-semibold text-gray-800">Learner Intake Schema</p>
                 <button
                   type="button"
                   onClick={() => setIntakeFields((prev) => [...prev, makeIntakeField(prev.length + 1)])}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600"
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600"
                 >
                   <Plus className="h-3 w-3" /> Add field
                 </button>
               </div>
-              <input value={intakeTitle} onChange={(e) => setIntakeTitle(e.target.value)} placeholder="Intake title" className="mt-3 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
-              <textarea value={intakeDescription} onChange={(e) => setIntakeDescription(e.target.value)} placeholder="Intake description" className="mt-2 min-h-[70px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              <textarea value={creatorPrompt} onChange={(e) => setCreatorPrompt(e.target.value)} placeholder="Creator guidance shown to learner" className="mt-2 min-h-[70px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+              <input value={intakeTitle} onChange={(e) => setIntakeTitle(e.target.value)} placeholder="Intake title" className="mt-3 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" />
+              <textarea value={intakeDescription} onChange={(e) => setIntakeDescription(e.target.value)} placeholder="Intake description" className="mt-2 min-h-[70px] w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <textarea value={creatorPrompt} onChange={(e) => setCreatorPrompt(e.target.value)} placeholder="Creator guidance shown to learner" className="mt-2 min-h-[70px] w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
 
               <div className="mt-3 space-y-2">
                 {intakeFields.map((field, index) => (
-                  <div key={field.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <div key={field.id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-3">
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <input value={field.label} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, label: e.target.value } : item)))} placeholder="Field label" className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
-                      <select value={field.type} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, type: e.target.value as IntakeField['type'] } : item)))} className="h-9 rounded-lg border border-slate-200 px-2 text-sm">
+                      <input value={field.label} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, label: e.target.value } : item)))} placeholder="Field label" className="h-9 rounded-lg border border-gray-200 px-2 text-sm" />
+                      <select value={field.type} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, type: e.target.value as IntakeField['type'] } : item)))} className="h-9 rounded-lg border border-gray-200 px-2 text-sm">
                         <option value="file">File</option>
                         <option value="url">URL</option>
                         <option value="text">Text</option>
                       </select>
                     </div>
-                    <textarea value={field.description} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, description: e.target.value } : item)))} placeholder="Why this field is needed" className="mt-2 min-h-[58px] w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                    <textarea value={field.description} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, description: e.target.value } : item)))} placeholder="Why this field is needed" className="mt-2 min-h-[58px] w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                     <div className="mt-2 flex items-center justify-between">
-                      <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                         <input type="checkbox" checked={field.required} onChange={(e) => setIntakeFields((prev) => prev.map((item, i) => (i === index ? { ...item, required: e.target.checked } : item)))} />
                         Required
                       </label>
-                      <button type="button" onClick={() => setIntakeFields((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-rose-600">
+                      <button type="button" onClick={() => setIntakeFields((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-rose-600">
                         <Trash2 className="h-3 w-3" /> Remove
                       </button>
                     </div>
@@ -293,21 +293,21 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="font-heading text-lg font-semibold text-slate-800">Agent Skill Packs</p>
-                <button type="button" onClick={() => setSkillPacks((prev) => [...prev, makeSkillPack(prev.length + 1)])} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600">
+                <p className="font-heading text-lg font-semibold text-gray-800">Agent Skill Packs</p>
+                <button type="button" onClick={() => setSkillPacks((prev) => [...prev, makeSkillPack(prev.length + 1)])} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600">
                   <Plus className="h-3 w-3" /> Add skill
                 </button>
               </div>
               <div className="mt-3 space-y-2">
                 {skillPacks.map((skill, index) => (
-                  <div key={skill.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                    <input value={skill.name} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item)))} placeholder="Skill name" className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm" />
-                    <input value={skill.intent} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, intent: e.target.value } : item)))} placeholder="Skill intent" className="mt-2 h-9 w-full rounded-lg border border-slate-200 px-2 text-sm" />
-                    <textarea value={skill.instructions} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, instructions: e.target.value } : item)))} placeholder="Instructions this skill should follow" className="mt-2 min-h-[70px] w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                  <div key={skill.id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+                    <input value={skill.name} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item)))} placeholder="Skill name" className="h-9 w-full rounded-lg border border-gray-200 px-2 text-sm" />
+                    <input value={skill.intent} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, intent: e.target.value } : item)))} placeholder="Skill intent" className="mt-2 h-9 w-full rounded-lg border border-gray-200 px-2 text-sm" />
+                    <textarea value={skill.instructions} onChange={(e) => setSkillPacks((prev) => prev.map((item, i) => (i === index ? { ...item, instructions: e.target.value } : item)))} placeholder="Instructions this skill should follow" className="mt-2 min-h-[70px] w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                     <div className="mt-2 flex justify-end">
-                      <button type="button" onClick={() => removeSkillPack(index)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-rose-600">
+                      <button type="button" onClick={() => removeSkillPack(index)} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-rose-600">
                         <Trash2 className="h-3 w-3" /> Remove
                       </button>
                     </div>
@@ -316,32 +316,32 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="font-heading text-lg font-semibold text-slate-800">Commands</p>
+                <p className="font-heading text-lg font-semibold text-gray-800">Commands</p>
                 <button
                   type="button"
                   onClick={() => setCommands((prev) => [...prev, makeCommand(prev.length + 1, skillPacks[0]?.id ?? '')])}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600"
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600"
                 >
                   <Plus className="h-3 w-3" /> Add command
                 </button>
               </div>
               <div className="mt-3 space-y-2">
                 {commands.map((command, index) => (
-                  <div key={command.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                  <div key={command.id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-3">
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <input value={command.name} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item)))} placeholder="Command name" className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
-                      <input value={command.trigger} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, trigger: e.target.value } : item)))} placeholder="/command-trigger" className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
+                      <input value={command.name} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item)))} placeholder="Command name" className="h-9 rounded-lg border border-gray-200 px-2 text-sm" />
+                      <input value={command.trigger} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, trigger: e.target.value } : item)))} placeholder="/command-trigger" className="h-9 rounded-lg border border-gray-200 px-2 text-sm" />
                     </div>
-                    <select value={command.skillPackId} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, skillPackId: e.target.value } : item)))} className="mt-2 h-9 w-full rounded-lg border border-slate-200 px-2 text-sm">
+                    <select value={command.skillPackId} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, skillPackId: e.target.value } : item)))} className="mt-2 h-9 w-full rounded-lg border border-gray-200 px-2 text-sm">
                       {skillPacks.map((skill) => (
                         <option key={skill.id} value={skill.id}>{skill.name}</option>
                       ))}
                     </select>
-                    <textarea value={command.defaultPrompt} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, defaultPrompt: e.target.value } : item)))} placeholder="Default prompt executed by this command" className="mt-2 min-h-[62px] w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                    <textarea value={command.defaultPrompt} onChange={(e) => setCommands((prev) => prev.map((item, i) => (i === index ? { ...item, defaultPrompt: e.target.value } : item)))} placeholder="Default prompt executed by this command" className="mt-2 min-h-[62px] w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                     <div className="mt-2 flex justify-end">
-                      <button type="button" onClick={() => setCommands((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-rose-600">
+                      <button type="button" onClick={() => setCommands((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-rose-600">
                         <Trash2 className="h-3 w-3" /> Remove
                       </button>
                     </div>
@@ -350,20 +350,20 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="font-heading text-lg font-semibold text-slate-800">Learning Orchestration Steps</p>
-                <button type="button" onClick={() => setOrchestrationSteps((prev) => [...prev, makeOrchestrationStep(prev.length + 1)])} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600">
+                <p className="font-heading text-lg font-semibold text-gray-800">Learning Orchestration Steps</p>
+                <button type="button" onClick={() => setOrchestrationSteps((prev) => [...prev, makeOrchestrationStep(prev.length + 1)])} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600">
                   <Plus className="h-3 w-3" /> Add step
                 </button>
               </div>
               <div className="mt-3 space-y-2">
                 {orchestrationSteps.map((step, index) => (
-                  <div key={step.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                    <input value={step.title} onChange={(e) => setOrchestrationSteps((prev) => prev.map((item, i) => (i === index ? { ...item, title: e.target.value } : item)))} placeholder="Step title" className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm" />
-                    <textarea value={step.description} onChange={(e) => setOrchestrationSteps((prev) => prev.map((item, i) => (i === index ? { ...item, description: e.target.value } : item)))} placeholder="Step description" className="mt-2 min-h-[62px] w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                  <div key={step.id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+                    <input value={step.title} onChange={(e) => setOrchestrationSteps((prev) => prev.map((item, i) => (i === index ? { ...item, title: e.target.value } : item)))} placeholder="Step title" className="h-9 w-full rounded-lg border border-gray-200 px-2 text-sm" />
+                    <textarea value={step.description} onChange={(e) => setOrchestrationSteps((prev) => prev.map((item, i) => (i === index ? { ...item, description: e.target.value } : item)))} placeholder="Step description" className="mt-2 min-h-[62px] w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm" />
                     <div className="mt-2 flex justify-end">
-                      <button type="button" onClick={() => setOrchestrationSteps((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-rose-600">
+                      <button type="button" onClick={() => setOrchestrationSteps((prev) => prev.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-rose-600">
                         <Trash2 className="h-3 w-3" /> Remove
                       </button>
                     </div>
@@ -372,15 +372,15 @@ export default function CreatorBuilderPage({ onBack, onPublish }: CreatorBuilder
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="font-heading text-lg font-semibold text-slate-800">Runtime Policy</p>
-              <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="System prompt for learner-facing agent" className="mt-3 min-h-[84px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              <textarea value={guardrails} onChange={(e) => setGuardrails(e.target.value)} placeholder="Special guardrails and constraints" className="mt-2 min-h-[70px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="font-heading text-lg font-semibold text-gray-800">Runtime Policy</p>
+              <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="System prompt for learner-facing agent" className="mt-3 min-h-[84px] w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <textarea value={guardrails} onChange={(e) => setGuardrails(e.target.value)} placeholder="Special guardrails and constraints" className="mt-2 min-h-[70px] w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
               <button
                 type="button"
                 onClick={publish}
                 disabled={!canPublish}
-                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 Publish Runnable Skill Package
               </button>

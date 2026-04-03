@@ -32,8 +32,8 @@ interface SessionCanvasProps {
 }
 
 const statusDot: Record<SkillNodeStatus, string> = {
-  locked: 'bg-slate-300',
-  available: 'bg-teal-400',
+  locked: 'bg-gray-300',
+  available: 'bg-blue-400',
   'in-progress': 'bg-amber-400',
   completed: 'bg-emerald-500',
 };
@@ -50,7 +50,7 @@ function nodeMeta(node: SessionNode): { label: string; icon: JSX.Element; tone: 
     return {
       label: 'Main',
       icon: <TreePine className="h-4 w-4" />,
-      tone: 'text-teal-700 bg-teal-100 border-teal-200',
+      tone: 'text-blue-700 bg-blue-100 border-blue-200',
     };
   }
 
@@ -81,7 +81,7 @@ function nodeMeta(node: SessionNode): { label: string; icon: JSX.Element; tone: 
   return {
     label: node.intent ? node.intent.charAt(0).toUpperCase() + node.intent.slice(1) : 'Branch',
     icon: <CircleDot className="h-4 w-4" />,
-    tone: 'text-slate-700 bg-slate-100 border-slate-200',
+    tone: 'text-gray-700 bg-gray-100 border-gray-200',
   };
 }
 
@@ -139,8 +139,8 @@ function PlanningPlaceholder({
             <TreePine className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <p className="font-heading text-sm font-semibold text-slate-900">Building your learning plan</p>
-            <p className="text-xs text-slate-500">Skill tree will appear here when complete</p>
+            <p className="font-heading text-sm font-semibold text-gray-900">Building your learning plan</p>
+            <p className="text-xs text-gray-500">Skill tree will appear here when complete</p>
           </div>
         </motion.div>
 
@@ -170,10 +170,10 @@ function PlanningPlaceholder({
                   }
                   className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 text-xs transition-colors ${
                     step.state === 'done'
-                      ? 'border-teal-200 bg-teal-50'
+                      ? 'border-blue-200 bg-blue-50'
                       : step.state === 'active'
                         ? 'border-amber-300 bg-amber-50'
-                        : 'border-slate-200 bg-white/60'
+                        : 'border-gray-200 bg-white/60'
                   }`}
                 >
                   {step.state === 'done' ? (
@@ -184,17 +184,17 @@ function PlanningPlaceholder({
                       transition={springFor(reducedMotion, 'snappy')}
                       className="mt-0.5"
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-teal-600" />
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-blue-600" />
                     </motion.span>
                   ) : (
-                    <CircleDot className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${step.state === 'active' ? 'text-amber-500' : 'text-slate-300'}`} />
+                    <CircleDot className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${step.state === 'active' ? 'text-amber-500' : 'text-gray-300'}`} />
                   )}
                   <div>
-                    <p className={`font-medium ${step.state === 'done' ? 'text-teal-800' : step.state === 'active' ? 'text-amber-900' : 'text-slate-400'}`}>
+                    <p className={`font-medium ${step.state === 'done' ? 'text-blue-800' : step.state === 'active' ? 'text-amber-900' : 'text-gray-400'}`}>
                       {step.title}
                     </p>
                     {step.state !== 'pending' && (
-                      <p className="mt-0.5 text-slate-500">{step.details}</p>
+                      <p className="mt-0.5 text-gray-500">{step.details}</p>
                     )}
                   </div>
                 </motion.div>
@@ -284,7 +284,7 @@ export default function SessionCanvas({
       >
         <motion.span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[0.95rem] ring-2 ring-teal-400/50"
+          className="pointer-events-none absolute inset-0 rounded-[0.95rem] ring-2 ring-blue-400/50"
           initial={false}
           animate={isActive && !reducedMotion ? { opacity: [0, 0.7, 0] } : { opacity: 0 }}
           transition={{ duration: reducedMotion ? 0.12 : 0.45, ease: 'easeOut' }}
@@ -296,18 +296,18 @@ export default function SessionCanvas({
             {meta.label}
           </span>
           <span className={`h-2.5 w-2.5 rounded-full ${
-            node.status === 'active' ? 'bg-teal-500'
+            node.status === 'active' ? 'bg-blue-500'
               : node.status === 'completed' ? 'bg-emerald-500'
-                : 'bg-slate-300'
+                : 'bg-gray-300'
           }`} />
         </div>
 
-        <p className="relative mt-2 line-clamp-2 font-heading text-[13px] font-semibold text-slate-900">
+        <p className="relative mt-2 line-clamp-2 font-heading text-[13px] font-semibold text-gray-900">
           {node.title}
         </p>
 
         {node.originText && (
-          <p className="relative mt-1 line-clamp-1 text-[10px] text-slate-400">
+          <p className="relative mt-1 line-clamp-1 text-[10px] text-gray-400">
             "{node.originText}"
           </p>
         )}
@@ -319,18 +319,18 @@ export default function SessionCanvas({
     <motion.div className="flex h-full min-w-0 flex-col overflow-hidden" initial={false}>
       <motion.div className="border-b border-white/50 px-5 py-3" variants={fadeSlideY(reducedMotion, 8)}>
         <div className="flex items-center justify-between gap-3">
-            <p className="font-heading text-base font-semibold text-slate-900">
+            <p className="font-heading text-base font-semibold text-gray-900">
               {mainPhase === 'learning' ? 'Data Analyst Skill Graph' : 'Learning Plan'}
             </p>
-          <div className="rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-xs text-slate-600">
+          <div className="rounded-lg border border-gray-200 bg-white/80 px-2.5 py-1.5 text-xs text-gray-600">
             {mainPhase === 'learning' ? (
               <div className="flex items-center gap-1.5">
-                <TreePine className="h-3 w-3 text-teal-600" />
+                <TreePine className="h-3 w-3 text-blue-600" />
                 Skill tree active
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
-                <RotateCcw className="h-3 w-3 text-slate-400" />
+                <RotateCcw className="h-3 w-3 text-gray-400" />
                 Planning in progress
               </div>
             )}
@@ -340,13 +340,13 @@ export default function SessionCanvas({
 
       {mainPhase === 'planning' ? (
         <motion.div className="min-h-0 flex-1 overflow-auto p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={tweenFor(reducedMotion, MOTION_DURATION.base)}>
-          <div className="h-full rounded-2xl border border-slate-200/70 bg-white/70">
+          <div className="h-full rounded-2xl border border-gray-200/70 bg-white/70">
             <PlanningPlaceholder planningState={planningState} reducedMotion={reducedMotion} />
           </div>
         </motion.div>
       ) : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex w-60 shrink-0 flex-col border-r border-slate-200/70 bg-white/40">
+          <div className="flex w-60 shrink-0 flex-col border-r border-gray-200/70 bg-white/40">
             <motion.div
               className="max-h-[46%] overflow-y-auto py-3"
               variants={staggerContainer(reducedMotion, 0.05, 0.02)}
@@ -366,14 +366,14 @@ export default function SessionCanvas({
                     whileTap={!reducedMotion && !isLocked ? { scale: 0.99 } : undefined}
                     className={`group relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition ${
                       isSelected
-                        ? 'text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-50/60 hover:text-slate-900'
+                        ? 'text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-50/60 hover:text-gray-900'
                     } ${isLocked ? 'opacity-50' : ''}`}
                   >
                     {isSelected && (
                       <motion.span
                         layoutId="selected-skill-row"
-                        className="pointer-events-none absolute inset-y-1 left-1 right-1 rounded-xl bg-teal-50/80"
+                        className="pointer-events-none absolute inset-y-1 left-1 right-1 rounded-xl bg-blue-50/80"
                         transition={springFor(reducedMotion, 'snappy')}
                       />
                     )}
@@ -384,7 +384,7 @@ export default function SessionCanvas({
                       animate={isSelected && !isLocked && !reducedMotion ? { scale: 1.06 } : { scale: 1 }}
                       className={`relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                         isSelected
-                          ? 'bg-teal-500 text-white'
+                          ? 'bg-blue-500 text-white'
                           : `${statusDot[skill.status]} text-white`
                       }`}
                     >
@@ -393,7 +393,7 @@ export default function SessionCanvas({
 
                     <div className="relative z-10 min-w-0">
                       <p className="truncate text-sm font-semibold leading-tight">{skill.title}</p>
-                      <p className={`mt-0.5 text-xs ${isSelected ? 'text-teal-600' : 'text-slate-500'}`}>
+                      <p className={`mt-0.5 text-xs ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
                         {statusLabel[skill.status]}
                       </p>
                     </div>
@@ -406,7 +406,7 @@ export default function SessionCanvas({
           <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-white/30 p-4">
             {!selectedSkill ? (
               <motion.div
-                className="flex h-full items-center justify-center text-sm text-slate-400"
+                className="flex h-full items-center justify-center text-sm text-gray-400"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
@@ -422,13 +422,13 @@ export default function SessionCanvas({
               >
                 <motion.div
                   variants={fadeSlideY(reducedMotion, 8)}
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100"
                 >
-                  <BookOpen className="h-6 w-6 text-slate-400" />
+                  <BookOpen className="h-6 w-6 text-gray-400" />
                 </motion.div>
                 <motion.div variants={fadeSlideY(reducedMotion, 8)}>
-                  <p className="font-heading text-base font-semibold text-slate-700">{selectedSkill.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">{selectedSkill.description}</p>
+                  <p className="font-heading text-base font-semibold text-gray-700">{selectedSkill.title}</p>
+                  <p className="mt-1 text-sm text-gray-500">{selectedSkill.description}</p>
                 </motion.div>
 
                 {selectedSkill.status === 'available' && (
@@ -438,14 +438,14 @@ export default function SessionCanvas({
                     whileHover={reducedMotion ? undefined : { y: -1 }}
                     whileTap={reducedMotion ? undefined : { scale: 0.98 }}
                     transition={springFor(reducedMotion, 'snappy')}
-                    className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
                   >
                     Start Session →
                   </motion.button>
                 )}
 
                 {selectedSkill.status === 'locked' && (
-                  <motion.p className="text-xs text-slate-500" variants={fadeSlideY(reducedMotion, 8)}>
+                  <motion.p className="text-xs text-gray-500" variants={fadeSlideY(reducedMotion, 8)}>
                     Complete previous skills to unlock
                   </motion.p>
                 )}
@@ -467,7 +467,7 @@ export default function SessionCanvas({
                         key={`edge-${branch.id}`}
                         d={d}
                         fill="none"
-                        stroke="#94a3b8"
+                        stroke="#9ca3af"
                         strokeWidth={1.5}
                         strokeDasharray="5 4"
                         initial={reducedMotion ? { opacity: 0 } : { pathLength: 0, opacity: 0.2 }}
