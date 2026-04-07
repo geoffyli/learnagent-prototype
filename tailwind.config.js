@@ -35,16 +35,16 @@ export default {
           900: '#7c2d12',
         },
         surface: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
         },
         content: {
-          primary: '#1e293b',
-          secondary: '#475569',
-          tertiary: '#64748b',
-          muted: '#94a3b8',
+          primary: '#1f2937',
+          secondary: '#4b5563',
+          tertiary: '#6b7280',
+          muted: '#9ca3af',
         }
       },
       borderRadius: {

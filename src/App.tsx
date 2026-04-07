@@ -1,6 +1,6 @@
 import { ChangeEvent, SetStateAction, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Sparkles, TreePine } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Circle, CircleDot, Inbox, Lock, Map as MapIcon, Sparkles, X } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
@@ -8,7 +8,7 @@ import WelcomePage from './components/WelcomePage';
 import CreatorBuilderPage from './components/CreatorBuilderPage';
 import CourseDetailPage from './components/CourseDetailPage';
 import { COURSE_COMMUNITY } from './data/courseCommunity';
-import { MOTION_DURATION, springFor, tweenFor } from './motion/tokens';
+import { durationFor, MOTION_DURATION, MOTION_EASE, springFor, tweenFor } from './motion/tokens';
 import { fadeSlideY, staggerContainer } from './motion/variants';
 import {
   completeSkillAndUnlock,
@@ -18,12 +18,12 @@ import {
 } from './state/progression';
 import { applyActiveSession } from './state/session-status';
 import {
-  AgentNodeSuggestion,
   AnySessionRecord,
   BranchIntent,
   BranchSessionRecord,
   BranchSource,
   ChatMessage,
+  GlobalInboxItem,
   LearningPlanReport,
   MainSessionRecord,
   MainSessionPhase,
@@ -36,8 +36,14 @@ import {
 import type { ContentBlock } from './types/content-blocks';
 import { CONTENT_PACK_LABELS, TOPIC_DEFAULT_PACKS } from './data/richReplies';
 import { resolvePackById, resolveRichContent } from './state/content-resolver';
-import { dedupeSuggestions, generateNodeSuggestions } from './state/skill-tree-agent';
+import {
+  dedupeInboxItems,
+  generateInitialInboxItems,
+  generateInteractionInboxItems,
+  generateSkillCompletionInboxItems,
+} from './state/skill-tree-agent';
 import type { CoursePackageConfig } from './types/course-package';
+import { getPlanningScript, type PlanningTurn } from './state/planning-conversation';
 
 // Legacy export retained for existing prototype files that still import this type.
 export type ContentType = 'welcome' | 'concept-map' | 'code' | 'flashcards' | 'diagram';
@@ -47,7 +53,6 @@ const EMPTY_RICH_BLOCKS: ContentBlock[] = [];
 const EMPTY_RICH_BLOCKS_BY_SESSION: Record<string, ContentBlock[]> = {};
 const EMPTY_NODES: SessionNode[] = [];
 const EMPTY_SESSIONS: Record<string, AnySessionRecord> = {};
-const EMPTY_SUGGESTIONS: AgentNodeSuggestion[] = [];
 
 const DATA_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   {
@@ -528,65 +533,11 @@ function getCoursePackageById(packages: CoursePackageConfig[], id: string): Cour
   return packages.find((item) => item.id === id) ?? packages[0];
 }
 
-function summarizeIntakeForPlanning(coursePackage: CoursePackageConfig, intake: Record<string, string>): string {
-  const collected = coursePackage.intakeFields
-    .map((field) => {
-      const value = intake[field.id]?.trim();
-      if (!value) {
-        return null;
-      }
-      return `${field.label}: ${value}`;
-    })
-    .filter((item): item is string => Boolean(item));
-
-  if (collected.length === 0) {
-    return 'No learner materials were provided yet. Continue with a default profile.';
-  }
-
-  return `Learner materials received:\n- ${collected.join('\n- ')}`;
-}
-
 
 function createTimestamp(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function planningSeedMessage(coursePackage: CoursePackageConfig, intakeSummary: string): ChatMessage {
-
-  return {
-    id: 'seed-1',
-    role: 'assistant',
-    content:
-      `Let me build your personalized ${coursePackage.title} plan.\n\n${intakeSummary}\n\nI will now walk through 5 planning phases so you can see exactly how the path is generated.`,
-    timestamp: '09:00',
-  };
-}
-
-const PLANNING_STEP_USER_MESSAGES: Record<string, string> = {
-  purpose: 'Goal: become interview-ready for this package',
-  baseline: 'Baseline: I have partial foundations and need structured improvement',
-  research: 'Timeline: comfortable in 8 weeks',
-  milestones: 'Please draft a milestone roadmap for me',
-  report: 'Looks good — finalize the plan',
-};
-
-function buildPlanningStepMessages(coursePackage: CoursePackageConfig): Record<string, string> {
-  const [firstNode, secondNode, thirdNode] = coursePackage.skillNodes;
-  const lastNode = coursePackage.skillNodes[coursePackage.skillNodes.length - 1];
-
-  return {
-    purpose:
-      `Got it. Your target is ${coursePackage.title}. I will optimize this plan for practical interview performance and output quality for this package.`,
-    baseline:
-      `Baseline assessed. I will accelerate fundamentals where possible and focus on your highest-impact gaps for ${coursePackage.title}.`,
-    research:
-      `References gathered. I selected realistic interview scenarios and package-specific practice prompts so this stays execution-oriented instead of theory-heavy.`,
-    milestones:
-      `Milestone draft ready. I structured an 8-week path with dependency gates:\n\n→ Weeks 1-2: ${firstNode?.title ?? 'Core Foundation'} + ${secondNode?.title ?? 'Applied Skills'}\n→ Weeks 3-4: ${thirdNode?.title ?? 'Intermediate Progression'}\n→ Weeks 5-8: Advanced practice ending with ${lastNode?.title ?? 'Case Simulation'}\n\nEach stage includes practice, mastery checks, and review tasks.`,
-    report:
-      `Learning plan finalized. I generated a personalized ${coursePackage.skillNodes.length}-node skill tree with unlock dependencies, mastery checkpoints, and review scheduling. Start with ${firstNode?.title ?? 'the first node'} to unlock the rest of the sprint.`,
-  };
-}
 
 function buildPlanningState(): PlanningState {
   return {
@@ -720,6 +671,145 @@ function buildSkillDrivenReply(
   ].join('\n');
 }
 
+/* ---------- SkillProgressBar ---------- */
+
+function SkillProgressBar({
+  skillNodes,
+  activeSkillNodeId,
+  onSelectSkill,
+  onCompleteSkill,
+}: {
+  skillNodes: SkillNode[];
+  activeSkillNodeId?: string;
+  onSelectSkill: (id: string) => void;
+  onCompleteSkill: (id: string) => void;
+}) {
+  const reducedMotion = useReducedMotion() ?? false;
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white/80 px-4 py-2.5">
+      {skillNodes.map((skill) => {
+        const isActive = skill.id === activeSkillNodeId;
+        const isLocked = skill.status === 'locked';
+        const isCompleted = skill.status === 'completed';
+        const isInProgress = skill.status === 'in-progress';
+        return (
+          <motion.button
+            key={skill.id}
+            type="button"
+            onClick={() => !isLocked && onSelectSkill(skill.id)}
+            disabled={isLocked}
+            whileHover={reducedMotion || isLocked ? undefined : { y: -1 }}
+            whileTap={reducedMotion || isLocked ? undefined : { scale: 0.97 }}
+            className={`group relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              isActive
+                ? 'ring-2 ring-blue-400 ring-offset-1'
+                : ''
+            } ${
+              isCompleted
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                : isInProgress
+                  ? 'border border-blue-200 bg-blue-50 text-blue-700'
+                  : isLocked
+                    ? 'border border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                    : 'border border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+            }`}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : isInProgress ? (
+              <CircleDot className="h-3.5 w-3.5" />
+            ) : isLocked ? (
+              <Lock className="h-3 w-3" />
+            ) : (
+              <Circle className="h-3.5 w-3.5" />
+            )}
+            <span className="max-w-[120px] truncate">{skill.title}</span>
+            {isInProgress && isActive && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
+                className="ml-0.5 rounded-full bg-blue-600 p-0.5 text-white hover:bg-blue-700"
+                title="Mark as mastered"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+              </button>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- CanvasSlideOver ---------- */
+
+function CanvasSlideOver({
+  view,
+  blocks,
+  onClose,
+  onSwitchView,
+  skillTreeProps,
+}: {
+  view: 'content' | 'skill-tree';
+  blocks: ContentBlock[];
+  onClose: () => void;
+  onSwitchView: (view: 'content' | 'skill-tree') => void;
+  skillTreeProps: {
+    nodes: SessionNode[];
+    activeSessionId: string;
+    skillNodes: SkillNode[];
+    mainPhase: MainSessionPhase;
+    planningState: PlanningState | null;
+    onSelectSession: (sessionId: string) => void;
+    onSelectSkillNode: (skillNodeId: string) => void;
+  };
+}) {
+  const hasContent = blocks.length > 0;
+  return (
+    <div
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm"
+    >
+      <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onSwitchView('skill-tree')}
+            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-blue-50 text-blue-700' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            Skill Map
+          </button>
+          {hasContent && (
+            <button
+              type="button"
+              onClick={() => onSwitchView('content')}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Artifact
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          title="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {view === 'skill-tree' ? (
+          <SessionCanvas {...skillTreeProps} />
+        ) : (
+          <RichContentPanel blocks={blocks} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- WorkspaceState ---------- */
+
 interface WorkspaceState {
   id: string;
   title: string;
@@ -727,10 +817,7 @@ interface WorkspaceState {
   origin: 'custom' | 'package';
   createdAt: number;
   updatedAt: number;
-  leftTab: 'skill-tree' | 'content';
-  tabDirection: number;
   richBlocksBySession: Record<string, ContentBlock[]>;
-  agentSuggestionsBySession: Record<string, AgentNodeSuggestion[]>;
   nodes: SessionNode[];
   sessions: Record<string, AnySessionRecord>;
   activeSessionId: string;
@@ -764,12 +851,7 @@ function createWorkspace(
     origin,
     createdAt: now,
     updatedAt: now,
-    leftTab: 'skill-tree',
-    tabDirection: -1,
     richBlocksBySession: {
-      [MAIN_SESSION_ID]: [],
-    },
-    agentSuggestionsBySession: {
       [MAIN_SESSION_ID]: [],
     },
     nodes: [
@@ -806,6 +888,13 @@ function App() {
   const [publishedPackages, setPublishedPackages] = useState<CoursePackageConfig[]>([]);
   const [creatorStudioOpen, setCreatorStudioOpen] = useState(false);
   const [previewPackageId, setPreviewPackageId] = useState<string | null>(null);
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [canvasView, setCanvasView] = useState<'content' | 'skill-tree'>('content');
+  const [planningTurnIndex, setPlanningTurnIndex] = useState(0);
+  const [planningScript, setPlanningScript] = useState<PlanningTurn[]>([]);
+  const planningTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [globalInbox, setGlobalInbox] = useState<GlobalInboxItem[]>([]);
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   const allCoursePackages = useMemo(
     () => [...COURSE_PACKAGES, ...publishedPackages],
@@ -847,20 +936,6 @@ function App() {
     );
   };
 
-  const setLeftTab = (next: SetStateAction<'skill-tree' | 'content'>) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      leftTab: resolveState(workspace.leftTab, next),
-    }));
-  };
-
-  const setTabDirection = (next: SetStateAction<number>) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      tabDirection: resolveState(workspace.tabDirection, next),
-    }));
-  };
-
   const setSessionRichBlocks = (
     sessionId: string,
     next: SetStateAction<ContentBlock[]>,
@@ -881,19 +956,6 @@ function App() {
     }));
   };
 
-  const setAgentSuggestionsBySession = (
-    sessionId: string,
-    next: SetStateAction<AgentNodeSuggestion[]>,
-  ) => {
-    updateActiveWorkspace((workspace) => ({
-      ...workspace,
-      agentSuggestionsBySession: {
-        ...workspace.agentSuggestionsBySession,
-        [sessionId]: resolveState(workspace.agentSuggestionsBySession[sessionId] ?? EMPTY_SUGGESTIONS, next),
-      },
-    }));
-  };
-
   const setSessions = (next: SetStateAction<Record<string, AnySessionRecord>>) => {
     updateActiveWorkspace((workspace) => ({
       ...workspace,
@@ -908,12 +970,9 @@ function App() {
     }));
   };
 
-  const leftTab = workspaceState?.leftTab ?? 'skill-tree';
-  const tabDirection = workspaceState?.tabDirection ?? -1;
   const richBlocksBySession = workspaceState?.richBlocksBySession ?? EMPTY_RICH_BLOCKS_BY_SESSION;
   const nodes = workspaceState?.nodes ?? EMPTY_NODES;
   const sessions = workspaceState?.sessions ?? EMPTY_SESSIONS;
-  const agentSuggestionsBySession = workspaceState?.agentSuggestionsBySession ?? {};
   const learnerIntake = workspaceState?.learnerIntake ?? {};
   const activeCoursePackage = getCoursePackageById(
     allCoursePackages,
@@ -921,7 +980,6 @@ function App() {
   );
   const activeSessionId = workspaceState?.activeSessionId ?? MAIN_SESSION_ID;
   const activeRichBlocks = richBlocksBySession[activeSessionId] ?? EMPTY_RICH_BLOCKS;
-  const activeSuggestions = agentSuggestionsBySession[activeSessionId] ?? EMPTY_SUGGESTIONS;
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, SessionNode>();
@@ -971,21 +1029,6 @@ function App() {
   const visibleRichBlocks = activeRichBlocks.length > 0 ? activeRichBlocks : inferredFallbackRichBlocks;
 
 
-  const activePath = useMemo(() => {
-    const path: SessionNode[] = [];
-    let current: SessionNode | undefined = activeNode;
-
-    while (current) {
-      path.unshift(current);
-      if (!current.parentId) {
-        break;
-      }
-      current = nodeMap.get(current.parentId);
-    }
-
-    return path;
-  }, [activeNode, nodeMap]);
-  const activePathLabel = activePath.map((node) => node.title).join(' / ') || 'No session selected';
   const pageVariants = staggerContainer(reducedMotion, 0.09, 0.03);
   const pageItemVariants = fadeSlideY(reducedMotion, 10, MOTION_DURATION.slow);
 
@@ -1076,29 +1119,54 @@ function App() {
     setCreatorStudioOpen(false);
   };
 
-  const handleStartPlanning = () => {
+  const handleStartLearning = () => {
     if (!activeWorkspaceId) {
       return;
     }
 
-    const intakeSummary = summarizeIntakeForPlanning(activeCoursePackage, learnerIntake);
+    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+    if (!mainSession || mainSession.phase !== 'setup') {
+      return;
+    }
 
+    // Build the planning conversation script
+    const script = getPlanningScript(activeCoursePackage, learnerIntake);
+    setPlanningScript(script);
+    setPlanningTurnIndex(0);
+
+    // Clear any prior planning timeouts
+    planningTimeoutsRef.current.forEach(clearTimeout);
+    planningTimeoutsRef.current = [];
+
+    const firstQuestion = script[0]?.agentMessage ?? 'Let me help you build a learning plan.';
+
+    // Transition to planning phase with first agent question as seed
     setSessions((prev) => {
-      const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
-      if (!mainSession || mainSession.phase !== 'setup') {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session || session.phase !== 'setup') {
         return prev;
       }
-
       return {
         ...prev,
         [MAIN_SESSION_ID]: {
-          ...mainSession,
+          ...session,
           phase: 'planning',
           planning: buildPlanningState(),
-          messages: [planningSeedMessage(activeCoursePackage, intakeSummary)],
+          messages: [
+            {
+              id: 'planning-q-0',
+              role: 'assistant' as const,
+              content: firstQuestion,
+              timestamp: createTimestamp(),
+            },
+          ],
         },
       };
     });
+
+    // Auto-open canvas to show planning steps
+    setCanvasView('skill-tree');
+    setCanvasOpen(true);
   };
 
   const handleIntakeFileUpload = (fieldId: string, event: ChangeEvent<HTMLInputElement>) => {
@@ -1144,24 +1212,19 @@ function App() {
     }));
   };
 
-  const changeLeftTab = (nextTab: 'skill-tree' | 'content') => {
-    setTabDirection(nextTab === 'content' ? 1 : -1);
-    setLeftTab(nextTab);
-  };
-
   const activateSession = (sessionId: string) => {
     if (!activeWorkspaceId) {
       return;
     }
     setActiveSessionId(sessionId);
     setNodes((prev) => applyActiveSession(prev, sessionId));
-    // Auto-switch the canvas tab based on whether the session has rich content.
-    // Use the current rendered state (not pending updates) to decide.
-    // When called from createSubSession, blocks are not set yet (empty/undefined),
-    // so we'll fall to 'skill-tree'; the explicit changeLeftTab('content') call
-    // that follows createSubSession will override this for new topic sessions.
     const sessionBlocks = richBlocksBySession[sessionId] ?? EMPTY_RICH_BLOCKS;
-    changeLeftTab(sessionBlocks.length > 0 ? 'content' : 'skill-tree');
+    if (sessionBlocks.length > 0) {
+      setCanvasView('content');
+      setCanvasOpen(true);
+    } else {
+      setCanvasOpen(false);
+    }
   };
 
   const appendMessage = (
@@ -1269,19 +1332,18 @@ function App() {
       };
     });
     setSessionRichBlocks(sessionId, []);
-    setAgentSuggestionsBySession(sessionId, []);
 
     // Link back: only update the skill node's sessionId for topic sessions
     // Ask/explain branches must not overwrite the topic session link
     if (skillNodeId && kind === 'topic') {
       setSessions((prev) => {
-        const mainSession = prev[MAIN_SESSION_ID] as MainSessionRecord;
-        if (!mainSession) return prev;
+        const mainSess = prev[MAIN_SESSION_ID] as MainSessionRecord;
+        if (!mainSess) return prev;
         return {
           ...prev,
           [MAIN_SESSION_ID]: {
-            ...mainSession,
-            skillNodes: mainSession.skillNodes.map((n) =>
+            ...mainSess,
+            skillNodes: mainSess.skillNodes.map((n) =>
               n.id === skillNodeId ? { ...n, sessionId } : n,
             ),
           },
@@ -1293,6 +1355,115 @@ function App() {
     return sessionId;
   };
 
+  const finishPlanning = () => {
+    const report = generateLearningReport(activeCoursePackage);
+    const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
+    const firstSkillTitle = skillNodes[0]?.title ?? 'the first skill';
+
+    setSessions((prev) => {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session) return prev;
+      const doneSteps = (session.planning?.steps ?? []).map((s) => ({ ...s, state: 'done' as const }));
+      return {
+        ...prev,
+        [MAIN_SESSION_ID]: {
+          ...session,
+          phase: 'learning' as const,
+          planning: { steps: doneSteps, report },
+          skillNodes,
+          messages: [
+            ...session.messages,
+            {
+              id: nextId('msg'),
+              role: 'assistant' as const,
+              content: `Your personalized learning plan is ready. Let's start with **${firstSkillTitle}**.`,
+              timestamp: createTimestamp(),
+            },
+          ],
+        },
+      };
+    });
+
+    // Pre-seed global inbox with proactive items
+    const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
+    setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
+  };
+
+  const handlePlanningMessage = (rawMessage: string) => {
+    const script = planningScript;
+    const turnIdx = planningTurnIndex;
+    const currentTurn = script[turnIdx];
+    if (!currentTurn) return;
+
+    // 1. Append user message
+    appendMessage(MAIN_SESSION_ID, { role: 'user', content: rawMessage });
+
+    // 2. Mark current step as done
+    setSessions((prev) => {
+      const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+      if (!session?.planning) return prev;
+      return {
+        ...prev,
+        [MAIN_SESSION_ID]: {
+          ...session,
+          planning: {
+            ...session.planning,
+            steps: session.planning.steps.map((s) =>
+              s.id === currentTurn.stepId ? { ...s, state: 'done' as const } : s,
+            ),
+          },
+        },
+      };
+    });
+
+    // 3. Generate agent acknowledgment after a short delay
+    const ackTimeout = setTimeout(() => {
+      const ackText = currentTurn.buildReply(rawMessage);
+      appendMessage(MAIN_SESSION_ID, { role: 'assistant', content: ackText });
+
+      const nextIdx = turnIdx + 1;
+      const nextTurn = script[nextIdx];
+
+      if (nextTurn) {
+        // Mark next step as active
+        setSessions((prev) => {
+          const session = prev[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+          if (!session?.planning) return prev;
+          return {
+            ...prev,
+            [MAIN_SESSION_ID]: {
+              ...session,
+              planning: {
+                ...session.planning,
+                steps: session.planning.steps.map((s) =>
+                  s.id === nextTurn.stepId ? { ...s, state: 'active' as const } : s,
+                ),
+              },
+            },
+          };
+        });
+
+        // Post next question after another short delay
+        const questionTimeout = setTimeout(() => {
+          appendMessage(MAIN_SESSION_ID, {
+            role: 'assistant',
+            content: nextTurn.agentMessage,
+          });
+          setPlanningTurnIndex(nextIdx);
+        }, 600);
+        planningTimeoutsRef.current.push(questionTimeout);
+      } else {
+        // All steps done — transition to learning
+        setPlanningTurnIndex(script.length);
+        const transitionTimeout = setTimeout(() => {
+          finishPlanning();
+        }, 800);
+        planningTimeoutsRef.current.push(transitionTimeout);
+      }
+    }, 600);
+    planningTimeoutsRef.current.push(ackTimeout);
+  };
+
   const handleSendMessage = (
     rawMessage: string,
     options?: { displayMessage?: string },
@@ -1300,6 +1471,13 @@ function App() {
     if (!activeNode) {
       return;
     }
+
+    // During planning, delegate to the planning conversation handler
+    if (mainPhase === 'planning' && activeSessionId === MAIN_SESSION_ID) {
+      handlePlanningMessage(options?.displayMessage ?? rawMessage);
+      return;
+    }
+
     appendMessage(activeSessionId, {
       role: 'user',
       content: options?.displayMessage ?? rawMessage,
@@ -1318,7 +1496,8 @@ function App() {
         const commandBlocks = resolvePackById(matchedCommand.defaultContentPackId);
         if (commandBlocks) {
           setSessionRichBlocks(activeSessionId, commandBlocks);
-          changeLeftTab('content');
+          setCanvasView('content');
+          setCanvasOpen(true);
         }
       }
       return;
@@ -1335,20 +1514,24 @@ function App() {
       : contentResult.text;
     appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
 
-    const suggestions = generateNodeSuggestions({
-      parentSessionId: activeSessionId,
-      parentTitle: activeNode.title,
-      skillNodeId: activeNode.skillNodeId,
+    // Generate global inbox items from interaction context
+    const activeSessionRecord = sessions[activeSessionId];
+    const msgCount = activeSessionRecord ? activeSessionRecord.messages.length : 0;
+    const inboxItems = generateInteractionInboxItems({
+      skillNodes: mainSkillNodes,
+      activeSkillNodeId,
+      messageCount: msgCount,
       userMessage: rawMessage,
-      assistantMessage: assistantText,
-      siblingNodes: nodes,
       now: nextTimeline(),
     });
-    setAgentSuggestionsBySession(activeSessionId, (prev) => dedupeSuggestions(prev, suggestions));
+    if (inboxItems.length > 0) {
+      setGlobalInbox((prev) => dedupeInboxItems(prev, inboxItems));
+    }
 
     if (contentResult.rich) {
       setSessionRichBlocks(activeSessionId, contentResult.rich);
-      changeLeftTab('content');
+      setCanvasView('content');
+      setCanvasOpen(true);
     }
   };
 
@@ -1356,7 +1539,7 @@ function App() {
     if (!activeNode) {
       return;
     }
-    changeLeftTab('skill-tree');
+    setCanvasOpen(false);
     const label = selectedText.slice(0, 42);
     const title = `${kind === 'ask' ? 'Ask' : 'Explain'} • ${label}`;
     const promptProfile = branchPromptProfile(kind);
@@ -1396,138 +1579,43 @@ function App() {
     });
   };
 
-  const handleAcceptSuggestion = (sessionId: string, suggestionId: string) => {
-    const suggestion = (agentSuggestionsBySession[sessionId] ?? []).find((item) => item.id === suggestionId);
-    if (!suggestion || !activeWorkspaceId) {
-      return;
+  /* ---------- Global inbox handlers ---------- */
+
+  const handleInboxAccept = (itemId: string) => {
+    const item = globalInbox.find((i) => i.id === itemId);
+    if (!item) return;
+
+    switch (item.action) {
+      case 'start-skill':
+      case 'practice':
+      case 'explore-topic':
+      case 'review':
+        if (item.skillNodeId) handleSelectSkillNode(item.skillNodeId);
+        break;
+      case 'export-progress':
+        setCanvasView('skill-tree');
+        setCanvasOpen(true);
+        break;
+      case 'set-goal':
+      case 'branch':
+        // For demo: just dismiss — these would trigger modals/chat in a real product
+        break;
     }
 
-    if (suggestion.action === 'create') {
-      const siblingCount = nodes.filter((node) => node.parentId === sessionId).length;
-      createSubSession({
-        parentId: sessionId,
-        kind: 'branch',
-        intent: suggestion.intent ?? 'ask',
-        source: 'agent-suggestion',
-        title: suggestion.title,
-        originText: suggestion.originText,
-        promptProfile: suggestion.promptProfile,
-        contextNote: suggestion.contextNote,
-        seedMessages: [
-          {
-            id: nextId('msg'),
-            role: 'assistant',
-            content: suggestion.seedIntro,
-            timestamp: createTimestamp(),
-          },
-        ],
-        skillNodeId: suggestion.skillNodeId,
-        rank: siblingCount,
-      });
-    }
-
-    if (suggestion.action === 'retitle') {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === suggestion.targetSessionId ? { ...node, title: suggestion.nextTitle } : node,
-        ),
-      );
-    }
-
-    if (suggestion.action === 'reprioritize') {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === suggestion.targetSessionId ? { ...node, rank: suggestion.nextRank } : node,
-        ),
-      );
-    }
-
-    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
+    setGlobalInbox((prev) => prev.filter((i) => i.id !== itemId));
+    setInboxOpen(false);
   };
 
-  const handleDismissSuggestion = (sessionId: string, suggestionId: string) => {
-    setAgentSuggestionsBySession(sessionId, (prev) => prev.filter((item) => item.id !== suggestionId));
-  };
-
-  const handleAdvancePlanning = () => {
-    if (!activeSession) return;
-    if (!activeSession.planning) return;
-
-    const stepIndex = activeSession.planning.steps.findIndex(
-      (step) => step.state === 'active',
-    );
-    if (stepIndex === -1) return;
-
-    const completingStep = activeSession.planning.steps[stepIndex];
-
-    const userMessage = PLANNING_STEP_USER_MESSAGES[completingStep.id];
-    if (userMessage) {
-      appendMessage(activeSessionId, { role: 'user', content: userMessage });
-    }
-
-    const planningStepMessages = buildPlanningStepMessages(activeCoursePackage);
-    const narrativeContent = planningStepMessages[completingStep.id];
-    if (narrativeContent) {
-      appendMessage(activeSessionId, { role: 'assistant', content: narrativeContent });
-    }
-
-    setSessions((prev) => {
-      const session = prev[activeSessionId];
-      if (!session?.planning || session.planning.report) return prev;
-
-      const updatedSteps = session.planning.steps.map((step, index) => {
-        if (index === stepIndex) return { ...step, state: 'done' as const };
-        if (index === stepIndex + 1) return { ...step, state: 'active' as const };
-        return step;
-      });
-
-      const doneCount = updatedSteps.filter((s) => s.state === 'done').length;
-      const isFinished = doneCount === updatedSteps.length;
-      const report = isFinished ? generateLearningReport(activeCoursePackage) : null;
-
-      return {
-        ...prev,
-        [activeSessionId]: {
-          ...session,
-          planning: { steps: updatedSteps, report },
-        },
-      };
-    });
-  };
-
-
-  const handleFinishPlanning = () => {
-    if (!activeWorkspaceId) {
-      return;
-    }
-    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
-    const report = mainSession?.planning?.report;
-    if (!report) {
-      return;
-    }
-
-    const skillNodes: SkillNode[] = initializeSkillNodes(activeCoursePackage.skillNodes);
-
-    setSessions((prev) => {
-      const session = prev[MAIN_SESSION_ID] as MainSessionRecord;
-      if (!session) return prev;
-      return {
-        ...prev,
-        [MAIN_SESSION_ID]: {
-          ...session,
-          phase: 'learning' as const,
-          skillNodes,
-        },
-      };
-    });
+  const handleInboxDismiss = (itemId: string) => {
+    setGlobalInbox((prev) => prev.filter((i) => i.id !== itemId));
   };
 
   const handleSelectSkillNode = (skillNodeId: string) => {
     if (!activeWorkspaceId) {
       return;
     }
-    const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord;
-    const skillNode = mainSession?.skillNodes.find((n) => n.id === skillNodeId);
+    const mainSess = sessions[MAIN_SESSION_ID] as MainSessionRecord;
+    const skillNode = mainSess?.skillNodes.find((n) => n.id === skillNodeId);
     if (!skillNode || skillNode.status === 'locked') return;
 
     // If a session already exists for this node, navigate to it
@@ -1574,7 +1662,8 @@ function App() {
       const topicBlocks = resolvePackById(defaultPackId);
       if (topicBlocks) {
         setSessionRichBlocks(topicSessionId, topicBlocks);
-        changeLeftTab('content');
+        setCanvasView('content');
+        setCanvasOpen(true);
       }
     }
   };
@@ -1600,11 +1689,22 @@ function App() {
         },
       };
     });
+
+    // Generate global inbox items for skill completion
+    const completedSkill = mainSkillNodes.find((n) => n.id === skillNodeId);
+    if (completedSkill) {
+      const updatedNodes = completeSkillAndUnlock(mainSkillNodes, skillNodeId);
+      const completionItems = generateSkillCompletionInboxItems(completedSkill, updatedNodes, nextTimeline());
+      setGlobalInbox((prev) => dedupeInboxItems(prev, completionItems));
+    }
   };
 
   const mainSession = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
   const mainSkillNodes = mainSession?.skillNodes ?? [];
   const mainPhase: MainSessionPhase = mainSession?.phase ?? 'planning';
+  const planningQuickActions = mainPhase === 'planning'
+    ? (planningScript[planningTurnIndex]?.quickActions ?? [])
+    : [];
   const isIntakeReady = activeCoursePackage.intakeFields
     .filter((field) => field.required)
     .every((field) => Boolean(learnerIntake[field.id]?.trim()));
@@ -1612,22 +1712,6 @@ function App() {
   const activeSkillStatus: SkillNodeStatus | null = activeSkillNodeId
     ? mainSkillNodes.find((node) => node.id === activeSkillNodeId)?.status ?? null
     : null;
-  const tabPaneVariants = {
-    enter: (direction: number) => ({
-      opacity: 0,
-      x: reducedMotion ? 0 : direction > 0 ? 22 : -22,
-    }),
-    center: {
-      opacity: 1,
-      x: 0,
-      transition: tweenFor(reducedMotion, MOTION_DURATION.slow),
-    },
-    exit: (direction: number) => ({
-      opacity: 0,
-      x: reducedMotion ? 0 : direction > 0 ? -14 : 14,
-      transition: tweenFor(reducedMotion, MOTION_DURATION.fast, 'exit'),
-    }),
-  };
 
   if (!activeWorkspaceId || !activeWorkspace || !activeNode || !activeSession) {
     if (creatorStudioOpen) {
@@ -1672,30 +1756,25 @@ function App() {
   if (mainPhase === 'setup') {
     return (
       <motion.div
-        className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+        className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
       >
-        <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+        <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
-                LearnAgent Prototype
-              </p>
-              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
+              <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
             </div>
             <motion.button
               type="button"
               onClick={handleBackToWelcome}
-              whileHover={reducedMotion ? undefined : { y: -1 }}
-              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+              title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Sessions
             </motion.button>
           </div>
         </motion.header>
@@ -1705,26 +1784,26 @@ function App() {
           variants={pageItemVariants}
         >
           <div className="panel-surface w-full max-w-2xl px-6 py-8 text-center sm:px-8">
-            <p className="font-heading text-xl font-semibold text-slate-900">{activeCoursePackage.intakeTitle}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{activeCoursePackage.intakeDescription}</p>
+            <p className="font-heading text-xl font-semibold text-gray-900">{activeCoursePackage.intakeTitle}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{activeCoursePackage.intakeDescription}</p>
 
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4 text-left">
-              <p className="text-base font-semibold text-slate-700">Creator Guidance</p>
-              <p className="mt-1 text-[13px] leading-relaxed text-slate-600">{activeCoursePackage.creatorPrompt}</p>
+            <div className="mt-5 rounded-xl border border-gray-200 bg-white/80 px-4 py-4 text-left">
+              <p className="text-base font-semibold text-gray-700">Creator Guidance</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{activeCoursePackage.creatorPrompt}</p>
             </div>
 
             <div className="mt-4 space-y-3 text-left">
               {activeCoursePackage.intakeFields.map((field) => {
                 const currentValue = learnerIntake[field.id] ?? '';
                 return (
-                  <div key={field.id} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3">
-                    <p className="text-base font-semibold text-slate-700">
+                  <div key={field.id} className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+                    <p className="text-base font-semibold text-gray-700">
                       {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
                     </p>
-                    <p className="mt-1 text-[13px] text-slate-600">{field.description}</p>
+                    <p className="mt-1 text-[13px] text-gray-600">{field.description}</p>
 
                     {field.type === 'file' ? (
-                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-300 hover:text-teal-700">
+                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:text-blue-700">
                         Upload {field.label}
                         <input
                           type="file"
@@ -1739,11 +1818,11 @@ function App() {
                         value={currentValue}
                         onChange={(event) => handleIntakeTextChange(field.id, event.target.value)}
                         placeholder={field.placeholder}
-                        className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
+                        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
                       />
                     )}
 
-                    <p className="mt-2 text-[13px] text-slate-600">
+                    <p className="mt-2 text-[13px] text-gray-600">
                       {currentValue ? `Provided: ${currentValue}` : 'No input yet.'}
                     </p>
                   </div>
@@ -1755,7 +1834,7 @@ function App() {
               <button
                 type="button"
                 onClick={handleFillSampleIntake}
-                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
               >
                 Fill Sample Inputs
               </button>
@@ -1763,17 +1842,17 @@ function App() {
 
             <motion.button
               type="button"
-              onClick={handleStartPlanning}
+              onClick={handleStartLearning}
               disabled={!isIntakeReady}
               whileHover={reducedMotion ? undefined : { y: -1 }}
               whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               transition={springFor(reducedMotion, 'snappy')}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
             >
-              Generate Learning Plan
+              Start Learning
             </motion.button>
             {!isIntakeReady ? (
-              <p className="mt-2 text-[13px] text-slate-600">Complete required fields to continue.</p>
+              <p className="mt-2 text-[13px] text-gray-600">Complete required fields to continue.</p>
             ) : null}
           </div>
         </motion.main>
@@ -1783,183 +1862,210 @@ function App() {
 
   return (
     <motion.div
-      className="min-h-screen px-3 pb-4 pt-3 text-slate-900 sm:px-4 lg:px-5"
+      className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
       variants={pageVariants}
       initial="hidden"
       animate="visible"
     >
-      <motion.header className="hero-shell rounded-2xl px-4 py-3 sm:px-5" variants={pageItemVariants}>
+      <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
         <div className="flex items-center justify-between gap-3">
-          <div>
-              <p className="inline-flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-teal-600" />
-                LearnAgent Prototype
-              </p>
-              <p className="mt-1 text-base text-slate-700">{activeWorkspace.title}</p>
-              <p className="mt-0.5 text-[13px] text-slate-600">Package: {activeCoursePackage.title}</p>
-            </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
+            <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
+            <span className="hidden text-xs text-gray-400 md:inline">/</span>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={activeSessionId}
+                className="hidden truncate text-xs text-gray-500 md:block"
+                initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: reducedMotion ? 0 : -3 }}
+                transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+              >
+                {activeNode.title}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {mainPhase === 'learning' && (
+              <motion.button
+                type="button"
+                onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
+                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-500 hover:border-blue-200 hover:text-blue-600'}`}
+                title="Skill Map"
+              >
+                <MapIcon className="h-3.5 w-3.5" />
+              </motion.button>
+            )}
             <motion.button
               type="button"
               onClick={handleBackToWelcome}
-              whileHover={reducedMotion ? undefined : { y: -1 }}
-              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:text-teal-700"
+              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+              title="Back to sessions"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Sessions
             </motion.button>
-            <div className="hidden max-w-[420px] overflow-hidden md:block">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={activeSessionId}
-                  className="truncate text-xs text-slate-600"
-                  initial={{ opacity: 0, y: reducedMotion ? 0 : 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: reducedMotion ? 0 : -4 }}
-                  transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                >
-                  {activePathLabel}
-                </motion.p>
-              </AnimatePresence>
-            </div>
           </div>
         </div>
       </motion.header>
 
-      <motion.main
-        className="mt-4 grid gap-4 overflow-hidden lg:h-[calc(100vh-7.5rem)] lg:grid-cols-3"
-        variants={pageItemVariants}
-      >
-        <motion.section
-          className="min-h-[460px] min-w-0 lg:col-span-2 lg:h-full lg:min-h-0"
-          variants={fadeSlideY(reducedMotion, 12, MOTION_DURATION.slow)}
+      {(() => {
+        const showCanvas = canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0);
+        const dur = durationFor(reducedMotion, MOTION_DURATION.base);
+        const ease = MOTION_EASE.enter;
+        return (
+      <motion.main className="mt-3 flex h-[calc(100vh-5.5rem)] gap-3 overflow-hidden" variants={pageItemVariants}>
+        {/* Main chat column */}
+        <motion.div
+          animate={{ flexBasis: showCanvas ? '35%' : '100%', maxWidth: showCanvas ? '100%' : '48rem' }}
+          transition={{ duration: dur, ease }}
+          style={{ flexShrink: 0, flexGrow: 1 }}
+          className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
         >
-          <div className="panel-surface flex h-full flex-col overflow-hidden">
-            <div className="flex items-center gap-1 border-b border-white/50 px-4 py-2.5">
-              <motion.button
-                type="button"
-                onClick={() => changeLeftTab('skill-tree')}
-                whileHover={reducedMotion ? undefined : { y: -1 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                className="group relative inline-flex items-center rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium"
-              >
-                {leftTab === 'skill-tree' && (
-                  <motion.span
-                    layoutId="left-tab-pill"
-                    className="absolute inset-0 rounded-lg border border-teal-200 bg-teal-50"
-                    transition={springFor(reducedMotion, 'snappy')}
-                  />
-                )}
-                <span className={`relative inline-flex items-center gap-1.5 ${leftTab === 'skill-tree' ? 'text-teal-700' : 'text-slate-500 transition group-hover:text-slate-700'}`}>
-                  <TreePine className="h-3.5 w-3.5" />
-                  Skill Tree
-                </span>
-              </motion.button>
-
-              <AnimatePresence initial={false}>
-                {(visibleRichBlocks.length > 0 || leftTab === 'content') && (
-                  <motion.button
-                    key="content-tab"
-                    type="button"
-                    onClick={() => changeLeftTab('content')}
-                    whileHover={reducedMotion ? undefined : { y: -1 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                    className="group relative inline-flex items-center rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium"
-                    initial={{ opacity: 0, y: reducedMotion ? 0 : -4, scale: reducedMotion ? 1 : 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: reducedMotion ? 0 : -4, scale: reducedMotion ? 1 : 0.98 }}
-                    transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                  >
-                    {leftTab === 'content' && (
-                      <motion.span
-                        layoutId="left-tab-pill"
-                        className="absolute inset-0 rounded-lg border border-violet-200 bg-violet-50"
-                        transition={springFor(reducedMotion, 'snappy')}
-                      />
-                    )}
-                    <span className={`relative inline-flex items-center gap-1.5 ${leftTab === 'content' ? 'text-violet-700' : 'text-slate-500 transition group-hover:text-slate-700'}`}>
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Content
-                    </span>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="relative min-h-0 flex-1 overflow-hidden">
-              <AnimatePresence custom={tabDirection} mode="wait" initial={false}>
-                {leftTab === 'skill-tree' ? (
-                  <motion.div
-                    key="tab-skill-tree"
-                    className="h-full"
-                    custom={tabDirection}
-                    variants={tabPaneVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    <SessionCanvas
-                      nodes={nodes}
-                      activeSessionId={activeSessionId}
-                      activeSuggestions={activeSuggestions}
-                      skillNodes={mainSkillNodes}
-                      mainPhase={mainPhase}
-                      planningState={mainSession?.planning ?? null}
-                      onSelectSession={activateSession}
-                      onSelectSkillNode={handleSelectSkillNode}
-                      onAcceptSuggestion={(suggestionId) => handleAcceptSuggestion(activeSessionId, suggestionId)}
-                      onDismissSuggestion={(suggestionId) => handleDismissSuggestion(activeSessionId, suggestionId)}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="tab-content"
-                    className="h-full"
-                    custom={tabDirection}
-                    variants={tabPaneVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    <RichContentPanel
-                      blocks={visibleRichBlocks}
-                      onCreateBranch={handleCreateBranch}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          {/* Skill progress bar — only show in learning phase */}
+          {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
+            <SkillProgressBar
+              skillNodes={mainSkillNodes}
+              activeSkillNodeId={activeSkillNodeId}
+              onSelectSkill={handleSelectSkillNode}
+              onCompleteSkill={handleCompleteSkill}
+            />
+          )}
+          {/* Chat */}
+          <div className="min-h-0 flex-1">
+            <SessionChat
+              key={activeSession.id}
+              activeNode={activeNode}
+              activeSession={activeSession}
+              mainPhase={mainPhase}
+              activeSkillNodeId={activeSkillNodeId}
+              activeSkillStatus={activeSkillStatus}
+              creatorCommands={activeCoursePackage.commands.map((command) => ({
+                id: command.id,
+                trigger: command.trigger,
+                name: command.name,
+                description: command.description,
+                inputFields: command.inputFields,
+              }))}
+              packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
+              planningQuickActions={planningQuickActions}
+              onSendMessage={handleSendMessage}
+              onCreateBranch={handleCreateBranch}
+              richBlocks={visibleRichBlocks}
+              canvasOpen={canvasOpen && canvasView === 'content'}
+              onToggleCanvas={() => {
+                if (canvasOpen && canvasView === 'content') {
+                  setCanvasOpen(false);
+                } else {
+                  setCanvasView('content');
+                  setCanvasOpen(true);
+                }
+              }}
+            />
           </div>
-        </motion.section>
+        </motion.div>
 
-        <motion.section
-          className="min-h-[460px] min-w-0 lg:col-span-1 lg:h-full lg:min-h-0"
-          variants={fadeSlideY(reducedMotion, 16, MOTION_DURATION.slow)}
+        {/* Canvas panel — always mounted, animates width */}
+        <motion.div
+          animate={{
+            flexBasis: showCanvas ? '65%' : '0%',
+            opacity: showCanvas ? 1 : 0,
+          }}
+          transition={{ duration: dur, ease }}
+          style={{ flexShrink: 0, overflow: 'hidden' }}
+          className="hidden lg:block"
         >
-          <SessionChat
-            key={activeSession.id}
-            activeNode={activeNode}
-            activeSession={activeSession}
-            mainPhase={mainPhase}
-            activeSkillNodeId={activeSkillNodeId}
-            activeSkillStatus={activeSkillStatus}
-            creatorCommands={activeCoursePackage.commands.map((command) => ({
-              id: command.id,
-              trigger: command.trigger,
-              name: command.name,
-              description: command.description,
-              inputFields: command.inputFields,
-            }))}
-            packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
-            onSendMessage={handleSendMessage}
-            onCreateBranch={handleCreateBranch}
-            onAdvancePlanning={handleAdvancePlanning}
-            onFinishPlanning={handleFinishPlanning}
-            onCompleteSkill={handleCompleteSkill}
-          />
-        </motion.section>
+          {(canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
+            <CanvasSlideOver
+              view={canvasView}
+              blocks={visibleRichBlocks}
+              onClose={() => setCanvasOpen(false)}
+              onSwitchView={setCanvasView}
+              skillTreeProps={{
+                nodes,
+                activeSessionId,
+                skillNodes: mainSkillNodes,
+                mainPhase,
+                planningState: mainSession?.planning ?? null,
+                onSelectSession: activateSession,
+                onSelectSkillNode: handleSelectSkillNode,
+              }}
+            />
+          )}
+        </motion.div>
       </motion.main>
+        );
+      })()}
+
+      {/* ── Global Agent Inbox ── */}
+      <div className="fixed bottom-24 right-24 z-50">
+        <AnimatePresence>
+          {inboxOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+              className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+            >
+              <div className="border-b border-gray-100 px-4 py-3">
+                <p className="text-sm font-semibold text-gray-800">Agent Inbox</p>
+                <p className="text-xs text-gray-500">Proactive suggestions from your learning agent</p>
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                {globalInbox.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-gray-400">No suggestions right now</p>
+                ) : (
+                  globalInbox.map((item) => (
+                    <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-gray-50/60">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">{item.description}</p>
+                      </div>
+                      <div className="flex shrink-0 gap-1 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleInboxAccept(item.id)}
+                          className="rounded-md p-1 text-blue-600 transition hover:bg-blue-50"
+                          title="Accept"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInboxDismiss(item.id)}
+                          className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100"
+                          title="Dismiss"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          type="button"
+          onClick={() => setInboxOpen((prev) => !prev)}
+          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700 active:scale-95"
+        >
+          <Inbox className="h-5 w-5" />
+          {globalInbox.length > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+              {globalInbox.length}
+            </span>
+          )}
+        </button>
+      </div>
     </motion.div>
   );
 }
