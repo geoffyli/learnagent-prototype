@@ -46,7 +46,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
         variants={fadeSlideY(rm, 8, MOTION_DURATION.slow)}
       >
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <p className="font-heading text-xl font-semibold tracking-tight text-gray-900">LearnAgent</p>
+          <p className="font-heading text-xl font-semibold tracking-tight text-gray-900">Knovia</p>
           <motion.button
             type="button"
             onClick={onBack}

@@ -1,4 +1,4 @@
-# LearnAgent — 3-Minute Demo Script
+# Knovia — 3-Minute Demo Script
 
 > **Format:** Each section lists the **Action** (what to click/do on screen) and the **Script** (exact words to speak).
 > **Total runtime:** ~3 minutes. Practice until smooth — each beat is timed.
@@ -20,7 +20,7 @@
 **Script:**
 > "Most people learn with AI by having a long, messy chat. You ask a question, follow a tangent, follow another one — and ten minutes later you've completely lost track of what you were originally trying to learn. There's no structure, no progress, and nothing reusable.
 >
-> LearnAgent fixes that. What you're looking at is a **runnable learning runtime** — not a course player, not a chatbot. Let me show you."
+> Knovia fixes that. What you're looking at is a **runnable learning runtime** — not a course player, not a chatbot. Let me show you."
 
 ---
 
@@ -83,7 +83,7 @@
 **Action:** Click **"Ask"** in the popover that appears.
 
 **Script:**
-> "Instead of burying this in the same chat thread, LearnAgent creates a **branch session** — a separate workspace linked to this skill node. My main thread stays clean. I can go deep on a side topic and then navigate back.
+> "Instead of burying this in the same chat thread, Knovia creates a **branch session** — a separate workspace linked to this skill node. My main thread stays clean. I can go deep on a side topic and then navigate back.
 >
 > The canvas on the right shows the session tree — main session, topic, and branches all connected."
 
@@ -94,7 +94,7 @@
 **Action:** Click a **quick action** in the chat (e.g., "Skill Dependency Map" or "SQL vs BI Focus Matrix"). Switch to the **Content tab** in the canvas to show the generated artifact.
 
 **Script:**
-> "Let's trigger a richer artifact. LearnAgent doesn't just reply in text — it renders concept maps, comparison tables, timelines, and debug traces directly in the canvas. These are reusable — you can come back to them across sessions."
+> "Let's trigger a richer artifact. Knovia doesn't just reply in text — it renders concept maps, comparison tables, timelines, and debug traces directly in the canvas. These are reusable — you can come back to them across sessions."
 
 **Action:** Return to the SQL Foundations topic session. Click **"Mark Node Mastered"**.
 
@@ -113,7 +113,7 @@
 **Action:** Stay on the skill graph view.
 
 **Script:**
-> "That's LearnAgent — a structured, multi-threaded, artifact-first learning runtime. Not a chatbot. Not a course player. Something new.
+> "That's Knovia — a structured, multi-threaded, artifact-first learning runtime. Not a chatbot. Not a course player. Something new.
 >
 > We're building for learners who want to actually get somewhere."
 

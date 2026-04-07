@@ -385,7 +385,7 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
     discoverable: false,
     intakeTitle: 'Create your own learning session',
     intakeDescription:
-      'Upload your materials and learning goal. LearnAgent will build a personalized path.',
+      'Upload your materials and learning goal. Knovia will build a personalized path.',
     creatorPrompt:
       'This is a custom mode for self-directed sessions using your own materials.',
     intakeFields: [
@@ -428,7 +428,7 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
     defaultSessionTitle: 'Data Analyst Job Sprint Session',
     intakeTitle: 'Prepare your personalized Data Analyst sprint',
     intakeDescription:
-      'Provide the requested materials so LearnAgent can tailor your path.',
+      'Provide the requested materials so Knovia can tailor your path.',
     creatorPrompt:
       'Please upload your resume and one project link for personalized interview coaching.',
     intakeFields: [
@@ -480,7 +480,7 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
     defaultSessionTitle: 'Product Analyst Growth Sprint Session',
     intakeTitle: 'Prepare your personalized Product Analyst sprint',
     intakeDescription:
-      'Share product materials so LearnAgent can personalize analysis and experiment sessions.',
+      'Share product materials so Knovia can personalize analysis and experiment sessions.',
     creatorPrompt:
       'Please upload one product brief and one dashboard link for package-specific coaching.',
     intakeFields: [

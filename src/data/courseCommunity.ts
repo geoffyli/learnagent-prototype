@@ -7,9 +7,9 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
     completionCount: 934,
     rating: { score: 4.8, outOf: 5, count: 412 },
     creator: {
-      initials: 'LA',
-      name: 'LearnAgent Team',
-      bio: 'Designed by the LearnAgent Team in collaboration with hiring managers and senior analysts at B2C tech companies. Every node maps to a real interview signal.',
+      initials: 'KN',
+      name: 'Knovia Team',
+      bio: 'Designed by the Knovia Team in collaboration with hiring managers and senior analysts at B2C tech companies. Every node maps to a real interview signal.',
     },
     comments: [
       {
@@ -55,9 +55,9 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
     completionCount: 521,
     rating: { score: 4.7, outOf: 5, count: 238 },
     creator: {
-      initials: 'LA',
-      name: 'LearnAgent Team',
-      bio: 'Designed by the LearnAgent Team in collaboration with product managers and growth analysts at leading B2C tech companies. Every skill node reflects a real product analytics interview signal or on-the-job decision.',
+      initials: 'KN',
+      name: 'Knovia Team',
+      bio: 'Designed by the Knovia Team in collaboration with product managers and growth analysts at leading B2C tech companies. Every skill node reflects a real product analytics interview signal or on-the-job decision.',
     },
     comments: [
       {

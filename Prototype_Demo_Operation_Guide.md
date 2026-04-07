@@ -1,4 +1,4 @@
-# LearnAgent Prototype Demo Operation Guide
+# Knovia Prototype Demo Operation Guide
 
 This guide explains exactly how to operate the prototype to showcase all major product features.
 
@@ -10,7 +10,7 @@ This guide explains exactly how to operate the prototype to showcase all major p
 
 ## 2) Demo Goal
 
-Show that LearnAgent provides a runnable learning process for a Data Analyst job sprint:
+Show that Knovia provides a runnable learning process for a Data Analyst job sprint:
 
 - package selection at session creation
 - creator-side package generation and publishing flow

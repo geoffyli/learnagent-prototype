@@ -56,7 +56,7 @@ export default function WelcomePage({
         variants={fadeSlideY(reducedMotion, 10, MOTION_DURATION.slow)}
       >
         <div className="mb-8">
-          <p className="font-heading text-3xl font-semibold tracking-tight text-gray-900">LearnAgent</p>
+          <p className="font-heading text-3xl font-semibold tracking-tight text-gray-900">Knovia</p>
         </div>
 
         <div className="mx-auto max-w-2xl space-y-4">

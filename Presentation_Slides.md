@@ -1,14 +1,14 @@
-# LearnAgent Presentation Slides
+# Knovia Presentation Slides
 
 ---
 
 ## Slide 1: Cover Page
 
-**LearnAgent**
+**Knovia**
 AI-Powered Learning Assistant with Multi-Threaded Navigation & Dynamic UI
 
 **Business Thesis:**
-Self-directed tech learners struggle with getting lost in linear chat-based AI and lack rich visualizations—LearnAgent provides multi-threaded learning with AI-generated dynamic interfaces.
+Self-directed tech learners struggle with getting lost in linear chat-based AI and lack rich visualizations—Knovia provides multi-threaded learning with AI-generated dynamic interfaces.
 
 **Team:**
 [Photo] [Name 1]
@@ -33,7 +33,7 @@ Self-directed tech learners struggle with getting lost in linear chat-based AI a
 
 ## Slide 3: Our Solution
 
-**LearnAgent's Two Core Differentiators:**
+**Knovia's Two Core Differentiators:**
 
 **1. Multi-Threaded Tree Structure**
 - Parallel learning paths
@@ -74,7 +74,7 @@ Learners using chat-based AI experience:
 1. **Getting lost** when exploring tangential concepts
 2. **Text-only limitation** for complex topics
 
-**LearnAgent's approach solves both problems**
+**Knovia's approach solves both problems**
 
 [IMAGE: Simple diagram showing problem → solution mapping]
 
@@ -105,7 +105,7 @@ Learners using chat-based AI experience:
 **Solution Validation: ✓ STRONG**
 - **92%** rated multi-threaded structure valuable (4-5/5)
 - **83%** rated AI-generated UI valuable (4-5/5)
-- **75%** prefer LearnAgent over current tools
+- **75%** prefer Knovia over current tools
 
 [IMAGE: Bar chart showing key metrics]
 

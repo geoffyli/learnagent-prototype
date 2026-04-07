@@ -1,8 +1,8 @@
-# LearnAgent Prototype (Data Analyst Job Sprint)
+# Knovia Prototype (Data Analyst Job Sprint)
 
-Interactive prototype for LearnAgent's commercialization direction.
+Interactive prototype for Knovia's commercialization direction.
 
-Core demo statement: LearnAgent sells a runnable learning process, not static content.
+Core demo statement: Knovia sells a runnable learning process, not static content.
 
 ## What This Prototype Demonstrates
 
