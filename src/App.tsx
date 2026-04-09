@@ -1705,16 +1705,17 @@ function App() {
       skillNodeId,
     });
 
-    // Emit the topic's default rich pack to the content panel
+    // Pre-load the topic's default rich pack so it's ready when the user
+    // switches to the Artifact tab, but keep the canvas on Skill Map.
     const defaultPackId = TOPIC_DEFAULT_PACKS[skillNode.title]?.[0];
     if (defaultPackId && topicSessionId) {
       const topicBlocks = resolvePackById(defaultPackId);
       if (topicBlocks) {
         setSessionRichBlocks(topicSessionId, topicBlocks);
-        setCanvasView('content');
-        setCanvasOpen(true);
       }
     }
+    setCanvasView('skill-tree');
+    setCanvasOpen(true);
   };
 
   const handleCompleteSkill = (skillNodeId: string) => {
