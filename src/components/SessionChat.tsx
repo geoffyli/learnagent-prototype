@@ -98,7 +98,7 @@ function getQuickActions(
     const actions: QuickAction[] = [
       ...suggested,
       { label: 'Which skill should I focus on next?', prompt: 'Which skill should I learn next?' },
-      { label: 'Show SQL vs dashboard priorities', prompt: 'Show SQL vs dashboard priorities for interviews' },
+      { label: 'Show my study priorities', prompt: 'Show my study priorities' },
       { label: 'What should I review this week?', prompt: 'What should I review this week?' },
     ];
     return actions.slice(0, 3);
@@ -107,7 +107,7 @@ function getQuickActions(
   if (kind === 'topic') {
     const actions: QuickAction[] = [
       ...suggested,
-      { label: 'Common interview mistakes?', prompt: 'What are common interview mistakes here?' },
+      { label: 'Common mistakes in this area?', prompt: 'What are common mistakes in this area?' },
       { label: 'Run mastery check', prompt: 'Quiz me on this topic' },
     ];
     return actions.slice(0, 3);
@@ -116,7 +116,7 @@ function getQuickActions(
   if (kind === 'branch') {
     const actions: QuickAction[] = [
       ...suggested,
-      { label: 'Show practical interview example', prompt: 'Show me a practical interview example' },
+      { label: 'Show me a practical example', prompt: 'Show me a practical example' },
       { label: 'Common mistake here?', prompt: 'What is a common mistake with this?' },
     ];
     return actions.slice(0, 3);

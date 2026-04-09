@@ -28,6 +28,10 @@ export interface CoursePackageConfig {
   commands: CreatorCommand[];
   runtimePolicy: RuntimePolicy;
   suggestedActions?: SuggestedAction[];
+  planningHints?: {
+    purposeActions?: Array<{ label: string; prompt: string }>;
+    targetActions?: Array<{ label: string; prompt: string }>;
+  };
   source?: 'seed' | 'creator';
 }
 

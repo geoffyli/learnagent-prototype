@@ -316,6 +316,160 @@ const DATA_ANALYST_COMMANDS = [
   },
 ];
 
+/* ── SAT Exam Prep ──────────────────────────────────────────── */
+
+const SAT_EXAM_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
+  {
+    id: 'skill-sat-reading',
+    title: 'Reading Comprehension',
+    description: 'Passage types, evidence-based questions, vocabulary in context, and active reading strategies',
+    status: 'available',
+    dependsOn: [],
+    col: 0,
+    estimatedMinutes: 45,
+  },
+  {
+    id: 'skill-sat-math-no-calc',
+    title: 'Math: No Calculator',
+    description: 'Heart of algebra, problem solving with data analysis, and mental math strategies',
+    status: 'available',
+    dependsOn: [],
+    col: 0,
+    estimatedMinutes: 50,
+  },
+  {
+    id: 'skill-sat-writing',
+    title: 'Writing & Language',
+    description: 'Standard English conventions, expression of ideas, and rhetoric analysis',
+    status: 'locked',
+    dependsOn: ['skill-sat-reading'],
+    col: 1,
+    estimatedMinutes: 40,
+  },
+  {
+    id: 'skill-sat-math-calc',
+    title: 'Math: Calculator',
+    description: 'Advanced math, additional topics in math, and calculator efficiency',
+    status: 'locked',
+    dependsOn: ['skill-sat-math-no-calc'],
+    col: 1,
+    estimatedMinutes: 50,
+  },
+  {
+    id: 'skill-sat-evidence-analysis',
+    title: 'Evidence-Based Analysis',
+    description: 'Cross-section analysis integrating reading, writing, and data reasoning',
+    status: 'locked',
+    dependsOn: ['skill-sat-writing', 'skill-sat-math-calc'],
+    col: 2,
+    estimatedMinutes: 35,
+  },
+  {
+    id: 'skill-sat-practice-sim',
+    title: 'Full-Length Practice Simulation',
+    description: 'Timed full-section practice with score analysis and error classification',
+    status: 'locked',
+    dependsOn: ['skill-sat-evidence-analysis'],
+    col: 3,
+    estimatedMinutes: 60,
+  },
+  {
+    id: 'skill-sat-test-day',
+    title: 'Test-Day Strategy',
+    description: 'Time management, stress handling, pacing, and day-of logistics',
+    status: 'locked',
+    dependsOn: ['skill-sat-practice-sim'],
+    col: 4,
+    estimatedMinutes: 25,
+  },
+];
+
+const SAT_EXAM_SKILL_PACKS = [
+  {
+    id: 'skillpack-sat-strategy',
+    name: 'SAT Question Strategy Coach',
+    intent: 'SAT question strategy',
+    instructions: 'Coach SAT test-takers on question strategy: evidence identification, process of elimination, time allocation, and trap avoidance.',
+    exampleInput: 'I keep picking answers that sound right but are wrong on reading passages.',
+    exampleOutput: 'Use the "point to the line" method: before confirming an answer, identify the exact sentence in the passage that supports it. If you cannot find it, the answer is likely a trap.',
+  },
+  {
+    id: 'skillpack-sat-drill',
+    name: 'SAT Drill & Error Analysis Coach',
+    intent: 'SAT practice and error analysis',
+    instructions: 'Generate targeted SAT practice drills by section and difficulty. After practice, analyze error patterns and recommend specific improvement strategies.',
+    exampleInput: 'I want to practice Math No-Calculator at medium difficulty.',
+    exampleOutput: 'Here are 5 Heart of Algebra questions. Focus on: translating word problems into equations, solving systems of equations, and checking your work by substitution.',
+  },
+];
+
+const SAT_EXAM_COMMANDS = [
+  {
+    id: 'cmd-sat-drill',
+    name: 'SAT Drill',
+    trigger: '/sat-drill',
+    description: 'Generate a timed SAT practice drill for a specific section.',
+    skillPackId: 'skillpack-sat-drill',
+    defaultPrompt: 'Generate a focused SAT practice drill for this section.',
+    outputHint: 'Return a set of practice questions with difficulty labels and time targets.',
+    defaultContentPackId: 'sat-error-analysis-trace',
+    inputFields: [
+      {
+        id: 'section',
+        label: 'Section',
+        placeholder: 'Reading / Writing / Math No-Calc / Math Calc',
+        required: true,
+        type: 'text' as const,
+      },
+      {
+        id: 'difficulty',
+        label: 'Difficulty',
+        placeholder: 'Easy / Medium / Hard',
+        required: false,
+        type: 'text' as const,
+      },
+    ],
+  },
+  {
+    id: 'cmd-vocab-review',
+    name: 'Vocab Review',
+    trigger: '/vocab-review',
+    description: 'Generate SAT vocabulary flashcards from recent passages.',
+    skillPackId: 'skillpack-sat-strategy',
+    defaultPrompt: 'Generate SAT vocabulary flashcards focused on this topic.',
+    outputHint: 'Return flashcards with vocabulary in context, not isolated definitions.',
+    defaultContentPackId: 'sat-vocab-flashcards',
+    inputFields: [
+      {
+        id: 'topic',
+        label: 'Vocabulary focus',
+        placeholder: 'Context clues / Rhetoric / Word choice',
+        required: true,
+        type: 'text' as const,
+      },
+    ],
+  },
+  {
+    id: 'cmd-error-analysis',
+    name: 'Error Analysis',
+    trigger: '/error-analysis',
+    description: 'Analyze error patterns from practice questions.',
+    skillPackId: 'skillpack-sat-drill',
+    defaultPrompt: 'Analyze my error patterns for this section and recommend fixes.',
+    outputHint: 'Return error categories, frequency, and specific fix strategies.',
+    defaultContentPackId: 'sat-score-progress-metrics',
+    inputFields: [
+      {
+        id: 'section',
+        label: 'Section to analyze',
+        placeholder: 'Reading / Writing / Math',
+        required: true,
+        type: 'text' as const,
+      },
+    ],
+  },
+];
+
 const PRODUCT_ANALYST_SKILL_PACKS = [
   {
     id: 'skillpack-product-metrics',
@@ -525,9 +679,73 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
     ],
     source: 'seed',
   },
+  {
+    id: 'pkg-sat-exam-prep',
+    title: 'SAT Exam Prep Sprint',
+    subtitle: 'Reading + Writing + Math mastery for test day',
+    defaultSessionTitle: 'SAT Exam Prep Session',
+    intakeTitle: 'Personalize your SAT Prep plan',
+    intakeDescription:
+      'Share your starting point so Knovia can build a plan that targets your weak areas.',
+    creatorPrompt:
+      'Upload a recent practice test score report and indicate your target score. This helps us focus on high-impact areas.',
+    intakeFields: [
+      {
+        id: 'score-report',
+        label: 'Practice Test Score Report',
+        description: 'Upload a recent practice test or score report (PDF, PNG, JPG).',
+        type: 'file',
+        required: true,
+        accept: '.pdf,.png,.jpg',
+        sampleValue: 'sample-sat-score-report.pdf',
+      },
+      {
+        id: 'target-score',
+        label: 'Target SAT Score',
+        description: 'What total score are you aiming for?',
+        type: 'text',
+        required: true,
+        placeholder: '1400',
+        sampleValue: '1450',
+      },
+      {
+        id: 'weak-areas',
+        label: 'Weak Areas',
+        description: 'Optional: describe which sections or question types you struggle with most.',
+        type: 'text',
+        required: false,
+        placeholder: 'Reading comprehension, algebra word problems',
+        sampleValue: 'Reading evidence questions, no-calculator algebra',
+      },
+    ],
+    skillNodes: SAT_EXAM_SKILL_NODES,
+    skillPacks: SAT_EXAM_SKILL_PACKS,
+    commands: SAT_EXAM_COMMANDS,
+    runtimePolicy: {
+      systemPrompt: 'You are an SAT prep tutor focused on strategic test preparation, score improvement, and building confidence through targeted practice.',
+      guardrails: 'Always explain the reasoning behind correct answers. Never just give answers without rationale. Encourage process over memorization.',
+    },
+    suggestedActions: [
+      { label: 'Run SAT drill', prompt: '/sat-drill section="Reading" difficulty="Medium"' },
+      { label: 'Review vocabulary', prompt: '/vocab-review topic="Context clues"' },
+    ],
+    planningHints: {
+      purposeActions: [
+        { label: 'Improve my SAT score', prompt: 'My main goal is to improve my SAT score for college admissions.' },
+        { label: 'Prepare for a test date', prompt: 'I have a specific test date coming up and need to prepare efficiently.' },
+        { label: 'Strengthen weak sections', prompt: 'I want to focus on my weakest sections to maximize score improvement.' },
+      ],
+      targetActions: [
+        { label: 'Top-tier universities', prompt: 'I am targeting top-tier universities that expect scores above 1400.' },
+        { label: 'State universities', prompt: 'I am targeting state universities where a solid score around 1200-1300 is competitive.' },
+        { label: 'No specific target', prompt: 'No specific target yet — I want the highest score I can get.' },
+      ],
+    },
+    source: 'seed',
+  },
 ];
 
-const DEFAULT_COURSE_PACKAGE_ID = 'pkg-data-analyst-job-sprint';
+const DEFAULT_COURSE_PACKAGE_ID = 'pkg-sat-exam-prep';
 
 function getCoursePackageById(packages: CoursePackageConfig[], id: string): CoursePackageConfig {
   return packages.find((item) => item.id === id) ?? packages[0];
@@ -620,7 +838,7 @@ function topicIntroFor(title: string, description: string): string {
 
 function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: BranchIntent): string {
   if (kind === 'topic') {
-    return `Good question. Here's what matters for "${message}" in a data analyst workflow. You can ask for a breakdown, comparison table, practice prompt, or review drill.`;
+    return `Good question. Here's what matters for "${message}" in this area. You can ask for a breakdown, comparison table, practice prompt, or review drill.`;
   }
   if (kind === 'branch' && intent === 'ask') {
     return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;

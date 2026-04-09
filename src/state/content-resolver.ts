@@ -102,6 +102,55 @@ const INTENT_RULES: IntentRule[] = [
     reason: 'interview strategy intent',
     baseScore: 0,
   },
+  /* SAT intent rules */
+  {
+    packId: 'sat-vocab-flashcards',
+    keywords: ['vocabulary', 'vocab', 'word meaning', 'definition', 'context clues', 'word choice'],
+    reason: 'SAT vocabulary intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-reading-vs-writing',
+    keywords: ['reading vs writing', 'reading strategy', 'writing strategy', 'passage strategy', 'section comparison'],
+    reason: 'SAT section strategy comparison intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-common-traps',
+    keywords: ['trap', 'common mistake', 'wrong answer', 'trick', 'pitfall', 'sat mistake', 'sat trap'],
+    reason: 'SAT common traps intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-error-analysis-trace',
+    keywords: ['error analysis', 'wrong answer analysis', 'mistake pattern', 'error pattern', 'practice review'],
+    reason: 'SAT error analysis intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-study-plan-timeline',
+    keywords: ['study plan', 'prep plan', 'sat schedule', 'week plan', 'sprint plan'],
+    reason: 'SAT study plan intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-test-day-checklist',
+    keywords: ['test day', 'test prep', 'what to bring', 'day of test', 'test day checklist'],
+    reason: 'SAT test day checklist intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-score-progress-metrics',
+    keywords: ['section score', 'score progress', 'improvement', 'target score', 'composite score'],
+    reason: 'SAT score progress intent',
+    baseScore: 0,
+  },
+  {
+    packId: 'sat-skill-dependency-map',
+    keywords: ['sat skill map', 'sat dependency', 'sat overview', 'sat learning path', 'sat graph'],
+    reason: 'SAT skill dependency map intent',
+    baseScore: 0,
+  },
 ];
 
 function isContentPackId(value: string): value is ContentPackId {

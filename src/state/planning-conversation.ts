@@ -33,8 +33,8 @@ export function getPlanningScript(
     {
       stepId: 'purpose',
       agentMessage:
-        `Thanks for sharing your materials${intakeSummary ? ` (${intakeSummary})` : ''}. Before I build your **${title}** plan, I want to understand your primary goal.\n\nWhat's the most important outcome you're looking for — acing technical interviews, building a strong portfolio, transitioning into a new role, or something else?`,
-      quickActions: [
+        `Thanks for sharing your materials${intakeSummary ? ` (${intakeSummary})` : ''}. Before I build your **${title}** plan, I want to understand your primary goal.\n\nWhat's the most important outcome you're looking for?`,
+      quickActions: coursePackage.planningHints?.purposeActions ?? [
         { label: 'Prepare for interviews', prompt: 'My main goal is to prepare for technical interviews.' },
         { label: 'Build portfolio projects', prompt: 'I want to build portfolio projects to showcase my skills.' },
         { label: 'Career transition', prompt: 'I am transitioning into a new role and need to build foundational skills.' },
@@ -83,8 +83,8 @@ export function getPlanningScript(
     {
       stepId: 'research',
       agentMessage:
-        `I'm now cross-referencing your background with current skill benchmarks for this domain. Are there specific companies, teams, or job postings you're targeting? This helps me tailor the case studies and practice style.`,
-      quickActions: [
+        `I'm now cross-referencing your background with current skill benchmarks for this domain. Are there specific targets or benchmarks you're aiming for? This helps me tailor the practice style.`,
+      quickActions: coursePackage.planningHints?.targetActions ?? [
         { label: 'Big tech companies', prompt: 'I am targeting big tech companies like Google, Meta, or Amazon.' },
         { label: 'Growth-stage startups', prompt: 'I am targeting growth-stage startups where I would wear multiple hats.' },
         { label: 'No specific target', prompt: 'No specific target yet — I want a well-rounded general preparation.' },
