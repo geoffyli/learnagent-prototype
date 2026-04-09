@@ -669,7 +669,7 @@ function topicIntroFor(title: string, description: string): string {
 
 function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: BranchIntent): string {
   if (kind === 'topic') {
-    return `Good question. Here's what matters for "${message}" in this area. You can ask for a breakdown, comparison table, practice prompt, or review drill.`;
+    return `Good question about "${message}". This is an important area to master — many students underestimate it.\n\nThe key is to focus on the underlying reasoning pattern rather than memorizing answers. Start by identifying what the question is really asking, then systematically eliminate options that don't have direct evidence supporting them.\n\nWould you like me to break this down further, or try a practice drill?`;
   }
   if (kind === 'branch' && intent === 'ask') {
     return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;
@@ -777,10 +777,10 @@ function SkillProgressBar({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
-                className="ml-0.5 rounded-full bg-blue-600 p-0.5 text-white hover:bg-blue-700"
+                className="ml-1 rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-blue-700"
                 title="Mark as mastered"
               >
-                <CheckCircle2 className="h-3 w-3" />
+                ✓ Master
               </button>
             )}
           </motion.button>
