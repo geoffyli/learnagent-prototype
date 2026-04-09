@@ -111,63 +111,6 @@ const DATA_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   },
 ];
 
-const PRODUCT_ANALYST_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
-  {
-    id: 'skill-product-metrics',
-    title: 'Product Metrics Foundations',
-    description: 'North-star metrics, guardrails, and metric tree decomposition',
-    status: 'available',
-    dependsOn: [],
-    col: 0,
-    estimatedMinutes: 35,
-  },
-  {
-    id: 'skill-event-instrumentation',
-    title: 'Event Instrumentation Basics',
-    description: 'Design event schema and validate analytics tracking quality',
-    status: 'locked',
-    dependsOn: ['skill-product-metrics'],
-    col: 1,
-    estimatedMinutes: 40,
-  },
-  {
-    id: 'skill-funnel-retention',
-    title: 'Funnel and Retention Analysis',
-    description: 'Activation, retention cohorts, and behavioral segment diagnosis',
-    status: 'locked',
-    dependsOn: ['skill-event-instrumentation'],
-    col: 2,
-    estimatedMinutes: 45,
-  },
-  {
-    id: 'skill-experiment-readout',
-    title: 'Experiment Readout',
-    description: 'Read A/B test outputs and convert them into product decisions',
-    status: 'locked',
-    dependsOn: ['skill-funnel-retention'],
-    col: 3,
-    estimatedMinutes: 40,
-  },
-  {
-    id: 'skill-product-storytelling',
-    title: 'Product Narrative Storytelling',
-    description: 'Communicate findings with concise business narratives',
-    status: 'locked',
-    dependsOn: ['skill-experiment-readout'],
-    col: 4,
-    estimatedMinutes: 35,
-  },
-  {
-    id: 'skill-pm-case-sim',
-    title: 'Product Analytics Case Simulation',
-    description: 'End-to-end product case simulation under interview constraints',
-    status: 'locked',
-    dependsOn: ['skill-product-storytelling'],
-    col: 5,
-    estimatedMinutes: 60,
-  },
-];
-
 const CUSTOM_SESSION_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   {
     id: 'skill-scope-goal',
@@ -470,66 +413,6 @@ const SAT_EXAM_COMMANDS = [
   },
 ];
 
-const PRODUCT_ANALYST_SKILL_PACKS = [
-  {
-    id: 'skillpack-product-metrics',
-    name: 'Product Metrics Coach',
-    intent: 'Metrics decomposition',
-    instructions: 'Guide learners to decompose product goals into measurable trees and guardrails.',
-    exampleInput: 'How do I structure activation metrics?',
-    exampleOutput: 'Start with north-star outcome, then define activation events and guardrails by stage.',
-  },
-  {
-    id: 'skillpack-experiment-readout',
-    name: 'Experiment Readout Coach',
-    intent: 'A/B decision support',
-    instructions: 'Explain experiment outcomes in product decision language with confidence boundaries.',
-    exampleInput: 'Variant B improved conversion but hurt retention.',
-    exampleOutput: 'Frame trade-off, quantify impact, then recommend rollout scope and follow-up test.',
-  },
-];
-
-const PRODUCT_ANALYST_COMMANDS = [
-  {
-    id: 'cmd-funnel-diagnose',
-    name: 'Funnel Diagnose',
-    trigger: '/funnel-diagnose',
-    description: 'Diagnose funnel drop-offs from product perspective.',
-    skillPackId: 'skillpack-product-metrics',
-    defaultPrompt: 'Diagnose this funnel and identify top drop-off causes.',
-    outputHint: 'Return stage-by-stage diagnosis and next instrumentation check.',
-    defaultContentPackId: 'render-waterfall-diagnosis',
-    inputFields: [
-      {
-        id: 'funnel-name',
-        label: 'Funnel name',
-        placeholder: 'Example: onboarding activation funnel',
-        required: true,
-        type: 'text' as const,
-      },
-    ],
-  },
-  {
-    id: 'cmd-exp-readout',
-    name: 'Experiment Readout',
-    trigger: '/exp-readout',
-    description: 'Generate a decision-ready experiment readout.',
-    skillPackId: 'skillpack-experiment-readout',
-    defaultPrompt: 'Create a decision-ready experiment readout.',
-    outputHint: 'Return summary, trade-off, recommendation, and risk.',
-    defaultContentPackId: 'effect-dependency-timeline',
-    inputFields: [
-      {
-        id: 'experiment-link',
-        label: 'Experiment doc or link',
-        placeholder: 'Paste experiment summary URL or note',
-        required: false,
-        type: 'url' as const,
-      },
-    ],
-  },
-];
-
 const COURSE_PACKAGES: CoursePackageConfig[] = [
   {
     id: 'pkg-custom-self-directed',
@@ -624,58 +507,6 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
     suggestedActions: [
       { label: 'Run SQL drill', prompt: '/sql-drill level="Medium" topic="retention"' },
       { label: 'Create case brief', prompt: '/case-brief business-question="Why did conversion drop?"' },
-    ],
-    source: 'seed',
-  },
-  {
-    id: 'pkg-product-analyst-growth-sprint',
-    title: 'Product Analyst Growth Sprint',
-    subtitle: 'Product metrics + experimentation + storytelling',
-    defaultSessionTitle: 'Product Analyst Growth Sprint Session',
-    intakeTitle: 'Prepare your personalized Product Analyst sprint',
-    intakeDescription:
-      'Share product materials so Knovia can personalize analysis and experiment sessions.',
-    creatorPrompt:
-      'Please upload one product brief and one dashboard link for package-specific coaching.',
-    intakeFields: [
-      {
-        id: 'product-brief',
-        label: 'Product Brief File',
-        description: 'Upload a PRD or product brief (PDF, DOC, DOCX).',
-        type: 'file',
-        required: true,
-        accept: '.pdf,.doc,.docx',
-        sampleValue: 'sample-product-brief.pdf',
-      },
-      {
-        id: 'dashboard-link',
-        label: 'Dashboard URL',
-        description: 'Share one analytics dashboard link you want to improve.',
-        type: 'url',
-        required: true,
-        placeholder: 'https://analytics.company.com/dashboard/123',
-        sampleValue: 'https://analytics.company.com/dashboard/growth-retention',
-      },
-      {
-        id: 'focus-question',
-        label: 'Focus Question',
-        description: 'Optional: describe one product problem you want to solve.',
-        type: 'text',
-        required: false,
-        placeholder: 'How can we improve onboarding conversion in week 1?',
-        sampleValue: 'How can we improve activation in the first 3 days?',
-      },
-    ],
-    skillNodes: PRODUCT_ANALYST_SKILL_NODES,
-    skillPacks: PRODUCT_ANALYST_SKILL_PACKS,
-    commands: PRODUCT_ANALYST_COMMANDS,
-    runtimePolicy: {
-      systemPrompt: 'You are a product analytics coach focused on metric trees, instrumentation, and experiments.',
-      guardrails: 'Always connect metric changes to product decisions and state uncertainty clearly.',
-    },
-    suggestedActions: [
-      { label: 'Diagnose funnel', prompt: '/funnel-diagnose funnel-name="onboarding activation"' },
-      { label: 'Generate experiment readout', prompt: '/exp-readout experiment-link="https://example.com/exp-42"' },
     ],
     source: 'seed',
   },

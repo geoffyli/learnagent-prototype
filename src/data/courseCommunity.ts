@@ -49,47 +49,6 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
       },
     ],
   },
-  'pkg-product-analyst-growth-sprint': {
-    packageId: 'pkg-product-analyst-growth-sprint',
-    learnerCount: 1103,
-    completionCount: 521,
-    rating: { score: 4.7, outOf: 5, count: 238 },
-    creator: {
-      initials: 'KN',
-      name: 'Knovia Team',
-      bio: 'Designed by the Knovia Team in collaboration with product managers and growth analysts at leading B2C tech companies. Every skill node reflects a real product analytics interview signal or on-the-job decision.',
-    },
-    comments: [
-      {
-        id: 'c1',
-        authorInitials: 'CM',
-        authorName: 'Chris M.',
-        daysAgo: '1 day ago',
-        text: 'The experiment readout module is incredibly well structured. I went from just reading p-values to framing trade-offs and making rollout recommendations. Game changer for PM interviews.',
-      },
-      {
-        id: 'c2',
-        authorInitials: 'LS',
-        authorName: 'Lena S.',
-        daysAgo: '4 days ago',
-        text: 'Funnel and retention finally feel intuitive. The branching sessions let me go deep on specific drop-off stages without losing the big picture of the overall path.',
-      },
-      {
-        id: 'c3',
-        authorInitials: 'DO',
-        authorName: 'David O.',
-        daysAgo: '10 days ago',
-        text: 'Narrative structure was the weak link in my analysis work. This sprint gave me a repeatable framework I now use for every stakeholder update.',
-      },
-      {
-        id: 'c4',
-        authorInitials: 'YB',
-        authorName: 'Yara B.',
-        daysAgo: '3 weeks ago',
-        text: 'Event instrumentation basics was a topic I always avoided. The way this course walks through schema design and validation tracking made it approachable even without a data engineering background.',
-      },
-    ],
-  },
   'pkg-sat-exam-prep': {
     packageId: 'pkg-sat-exam-prep',
     learnerCount: 2341,
