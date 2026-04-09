@@ -778,9 +778,9 @@ function SkillProgressBar({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
                 className="ml-1 rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-blue-700"
-                title="Mark as mastered"
+                title="Mark as complete"
               >
-                ✓ Master
+                ✓ Complete
               </button>
             )}
           </motion.button>
@@ -825,7 +825,7 @@ function CanvasSlideOver({
             onClick={() => onSwitchView('skill-tree')}
             className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-blue-50 text-blue-700' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Skill Map
+            Skill Tree
           </button>
           {hasContent && (
             <button
@@ -833,7 +833,7 @@ function CanvasSlideOver({
               onClick={() => onSwitchView('content')}
               className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              Artifact
+              Content
             </button>
           )}
         </div>
@@ -1943,7 +1943,7 @@ function App() {
                 onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
                 whileTap={reducedMotion ? undefined : { scale: 0.95 }}
                 className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-500 hover:border-blue-200 hover:text-blue-600'}`}
-                title="Skill Map"
+                title="Skill Tree"
               >
                 <MapIcon className="h-3.5 w-3.5" />
               </motion.button>
@@ -2061,8 +2061,8 @@ function App() {
               className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
             >
               <div className="border-b border-gray-100 px-4 py-3">
-                <p className="text-sm font-semibold text-gray-800">Agent Inbox</p>
-                <p className="text-xs text-gray-500">Proactive suggestions from your learning agent</p>
+                <p className="text-sm font-semibold text-gray-800">Suggestions</p>
+                <p className="text-xs text-gray-500">Recommended next steps for your learning</p>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                 {globalInbox.length === 0 ? (

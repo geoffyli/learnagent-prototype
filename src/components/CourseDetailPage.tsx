@@ -106,7 +106,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-700">Ready to start?</p>
-              <p className="mt-0.5 text-xs text-gray-400">{pkg.skillNodes.length} skill nodes · ~{totalMinutes} min total</p>
+              <p className="mt-0.5 text-xs text-gray-400">{pkg.skillNodes.length} skills · ~{totalMinutes} min total</p>
             </div>
             <motion.button
               type="button"

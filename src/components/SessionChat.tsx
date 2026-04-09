@@ -449,7 +449,7 @@ export default function SessionChat({
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-gray-300" />
               <p className="min-w-0 flex-1 truncate text-xs text-gray-400">
-                {richBlocks.length} {richBlocks.length === 1 ? 'artifact' : 'artifacts'}
+                {richBlocks.length} {richBlocks.length === 1 ? 'content item' : 'content items'}
               </p>
               <ChevronRight className={`h-3 w-3 shrink-0 text-gray-300 transition ${canvasOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -479,7 +479,7 @@ export default function SessionChat({
                 whileTap={reducedMotion ? undefined : { scale: 0.97 }}
                 className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
               >
-                Deep Dive
+                Explore This
               </motion.button>
             </motion.div>
           )}
@@ -505,7 +505,7 @@ export default function SessionChat({
                 }}
                 className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
               >
-                Deep Dive
+                Explore This
               </button>
             </motion.div>
           )}
@@ -564,7 +564,7 @@ export default function SessionChat({
                 }
               }}
               className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              placeholder="Ask about this skill node..."
+              placeholder="Ask a question..."
             />
             <AnimatePresence>
               {showCommandPopover && (

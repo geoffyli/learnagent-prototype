@@ -320,7 +320,7 @@ export default function SessionCanvas({
       <motion.div className="border-b border-white/50 px-5 py-3" variants={fadeSlideY(reducedMotion, 8)}>
         <div className="flex items-center justify-between gap-3">
             <p className="font-heading text-base font-semibold text-gray-900">
-              {mainPhase === 'learning' ? 'Data Analyst Skill Graph' : 'Learning Plan'}
+              {mainPhase === 'learning' ? 'Skill Tree' : 'Learning Plan'}
             </p>
           <div className="rounded-lg border border-gray-200 bg-white/80 px-2.5 py-1.5 text-xs text-gray-600">
             {mainPhase === 'learning' ? (

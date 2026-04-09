@@ -9,7 +9,7 @@
 
 - Run `npm run dev` and open the local Vite URL in browser.
 - Navigate to the **Welcome Page** (home screen).
-- Keep browser at full width so the canvas panel is visible.
+- Keep browser at full width so the side panel is visible.
 
 ---
 
@@ -29,7 +29,7 @@
 **Action:** Click **"SAT Exam Prep Sprint"** in the Course Packages section. The **Course Detail Page** appears.
 
 **Script:**
-> "We start with a course package. This is an SAT Exam Prep Sprint — 7 skill nodes, learner reviews, all built by a creator using Knovia's publishing tools."
+> "We start with a course package. This is an SAT Exam Prep Sprint — 7 skills, learner reviews, all built by a creator using Knovia's publishing tools."
 
 **Action:** Click **"Start Course"** on the Course Detail Page. The **Setup / Intake Page** appears.
 
@@ -45,26 +45,26 @@
 
 ## Beat 3 — Planning Flow (0:50–1:10)
 
-**Action:** Click **"Improve my SAT score"** to advance the first planning step. Click through **all five quick actions** to complete planning — the system auto-transitions to the skill graph after the last step.
+**Action:** Click **"Improve my SAT score"** to advance the first planning step. Click through **all five quick actions** to complete planning — the system auto-transitions to the skill tree after the last step.
 
 **Script:**
-> "The system runs a short planning conversation — goals, baseline, milestones. Each step completes in the canvas on the right. Once the plan is done, we enter the skill graph."
+> "The system runs a short planning conversation — goals, baseline, milestones. Each step completes in the panel on the right. Once the plan is done, we enter the skill tree."
 
 ---
 
-## Beat 4 — Skill Graph & Topic Session (1:10–1:40)
+## Beat 4 — Skill Tree & Topic (1:10–1:40)
 
-**Action:** Point to the **skill progress bar** at the top. Highlight that **two nodes** are available simultaneously: Reading Comprehension and Math: No Calculator. Click **"Reading Comprehension"** to open its topic session.
+**Action:** Point to the **skill progress bar** at the top. Highlight that **two skills** are available simultaneously: Reading Comprehension and Math: No Calculator. Click **"Reading Comprehension"** to open it.
 
 **Script:**
-> "This is the skill graph. Notice there are two starting points — Reading and Math. They're independent, just like on the real SAT. The system tracks mastery, not watch-time.
+> "This is the skill tree. Notice there are two starting points — Reading and Math. They're independent, just like on the real SAT. The system tracks completion, not watch-time.
 >
 > Let's open Reading Comprehension."
 
-**Action:** Point to the canvas on the right — the **Artifact tab** auto-loaded with a Reading vs Writing strategy comparison table.
+**Action:** Point to the **Skill Tree** tab in the side panel showing the learning tree structure.
 
 **Script:**
-> "Each topic session has its own workspace — chat on the left, artifacts on the right. The canvas auto-populates a strategy comparison for this section."
+> "Each skill has its own workspace — chat on the left, and a side panel showing the learning tree and any content the system generates."
 
 ---
 
@@ -75,42 +75,42 @@
 **Script:**
 > "Now here's the key differentiator. I'll ask a question — and then select part of the answer I want to explore further."
 
-**Action:** Click **"Deep Dive"** in the popover that appears.
+**Action:** Click **"Explore This"** in the popover that appears.
 
 **Script:**
-> "Instead of burying this in the same thread, Knovia creates a **branch session** — a separate workspace linked to this skill node. My main thread stays clean. I can go deep on a side topic and navigate back.
+> "Instead of burying this in the same thread, Knovia creates a **side exploration** — a separate workspace linked to this skill. My main thread stays clean. I can go deep on a side topic and navigate back.
 >
-> The canvas shows the session tree — main, topic, and branches all connected."
+> The panel shows the learning tree — my main thread, the topic, and explorations all connected."
 
 ---
 
-## Beat 6 — Canvas Artifact & Mastery (2:10–2:50)
+## Beat 6 — Content & Completion (2:10–2:50)
 
-**Action:** Click **"Reading Comprehension"** in the skill bar at the top to return to the topic session. Then type *"Show me SAT vocabulary flashcards"*. The **Artifact tab** updates with a flashcard deck.
+**Action:** Click **"Reading Comprehension"** in the skill bar at the top to return to the skill workspace. Then type *"Show me SAT vocabulary flashcards"*. The **Content tab** updates with a flashcard deck.
 
 **Script:**
-> "Back in the topic session, I'll ask for vocabulary flashcards. Knovia renders these directly in the canvas — not just text. Cards with real SAT-style sentences so definitions actually stick."
+> "Back in the skill workspace, I'll ask for vocabulary flashcards. Knovia renders these directly in the side panel — not just text. Cards with real SAT-style sentences so definitions actually stick."
 
 **Action:** Click on the flashcard to flip it. Click **Next** to show a second card.
 
-**Action:** Click **"✓ Master"** next to Reading Comprehension in the skill bar.
+**Action:** Click **"✓ Complete"** next to Reading Comprehension in the skill bar.
 
 **Script:**
-> "When I'm ready, I click Master — and watch what happens."
+> "When I'm ready, I click Complete — and watch what happens."
 
 **Action:** Point to the skill bar — Reading Comprehension shows a checkmark, **Writing & Language** changes from Locked to Ready. **Math: No Calculator** was already available.
 
 **Script:**
-> "Writing & Language unlocks because it depends on Reading. But Math was already available from the start — that's the non-linear skill graph in action."
+> "Writing & Language unlocks because it depends on Reading. But Math was already available from the start — that's the non-linear skill tree in action."
 
 ---
 
 ## Beat 7 — Close (2:50–3:00)
 
-**Action:** Stay on the skill graph view.
+**Action:** Stay on the skill tree view.
 
 **Script:**
-> "That's Knovia — a structured, multi-threaded, artifact-first learning runtime. Not a chatbot. Not a course player. Something new.
+> "That's Knovia — a structured, interactive learning system. Not a chatbot. Not a course player. Something new.
 >
 > We're building for learners who want to actually get somewhere."
 
@@ -118,9 +118,9 @@
 
 ## Fallback Prompts (If Chat Stalls)
 
-Paste these directly into chat to guarantee rich artifact output:
+Paste these directly into chat to guarantee rich content output:
 
-| Prompt | Expected Artifact |
+| Prompt | Expected Content |
 |---|---|
 | `"Show me the SAT skill dependency map"` | Concept map |
 | `"Compare reading vs writing strategies"` | Comparison table + metrics |
@@ -135,8 +135,8 @@ Paste these directly into chat to guarantee rich artifact output:
 
 ## Key One-Liners (Memorize These)
 
-- *"This is not a static course player. It is a runnable learning runtime."*
-- *"The skill graph is non-linear — Reading and Math start in parallel, just like the real SAT."*
-- *"Branch sessions mean you never lose your main thread."*
-- *"Progress is tracked on node mastery, not passive watch-time."*
-- *"The canvas stores reusable artifacts — flashcards, comparison tables, error traces — not just chat history."*
+- *"This is not a static course player. It is an interactive learning system."*
+- *"The skill tree is non-linear — Reading and Math start in parallel, just like the real SAT."*
+- *"Side explorations mean you never lose your main thread."*
+- *"Progress is tracked on skill completion, not passive watch-time."*
+- *"The side panel shows reusable content — flashcards, comparison tables, error traces — not just chat history."*
