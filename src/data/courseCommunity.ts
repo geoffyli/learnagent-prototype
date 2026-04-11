@@ -57,7 +57,7 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
     creator: {
       initials: 'KN',
       name: 'Knovia Team',
-      bio: 'Designed by the Knovia Team in collaboration with SAT tutoring experts and college admissions counselors. Every skill node maps to a real College Board test section and score-improvement strategy.',
+      bio: 'Designed by the Knovia Team in collaboration with Digital SAT tutoring experts. Every skill node maps to a real College Board domain and adaptive scoring strategy.',
     },
     comments: [
       {
@@ -65,28 +65,28 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
         authorInitials: 'MJ',
         authorName: 'Maya J.',
         daysAgo: '1 day ago',
-        text: 'The error analysis feature changed everything. I went from randomly reviewing wrong answers to actually understanding my mistake patterns. Score jumped 120 points in 4 weeks.',
+        text: 'The reasoning error diagnosis changed everything. I went from randomly reviewing wrong answers to understanding WHY I kept picking plausible-but-wrong choices. Score jumped 140 points in 5 weeks.',
       },
       {
         id: 'c2',
         authorInitials: 'AK',
         authorName: 'Alex K.',
         daysAgo: '3 days ago',
-        text: 'Having Reading and Math as parallel tracks made so much sense. I could switch between verbal and quantitative practice without feeling stuck on one thing.',
+        text: 'Understanding the adaptive module system was a game-changer. Once I focused on Module 1 accuracy instead of speed, my total score jumped 80 points.',
       },
       {
         id: 'c3',
         authorInitials: 'LP',
         authorName: 'Lily P.',
         daysAgo: '1 week ago',
-        text: 'The vocab flashcards in context are way better than just memorizing word lists. Every card uses real SAT-style sentences so the definitions actually stick.',
+        text: 'The strategy cards are nothing like Quizlet. Each one teaches a reasoning PROCESS — like the delete-the-clause trick for grammar. I use these patterns on every practice test now.',
       },
       {
         id: 'c4',
         authorInitials: 'DR',
         authorName: 'Daniel R.',
         daysAgo: '2 weeks ago',
-        text: 'The test-day strategy node was the most underrated part. Pacing drills and the checklist gave me so much confidence walking into the actual test.',
+        text: 'The score diagnosis told me exactly where my 200-point gap lived. Turned out 60 points were in grammar rules I could learn in two weeks. Best ROI of any test prep I have tried.',
       },
     ],
   },

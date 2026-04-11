@@ -263,86 +263,86 @@ const DATA_ANALYST_COMMANDS = [
 
 const SAT_EXAM_SKILL_NODES: Omit<SkillNode, 'sessionId'>[] = [
   {
-    id: 'skill-sat-reading',
-    title: 'Reading Comprehension',
-    description: 'Passage types, evidence-based questions, vocabulary in context, and active reading strategies',
+    id: 'skill-sat-rw-foundations',
+    title: 'Reading & Writing',
+    description: 'Craft & Structure, Information & Ideas — short-passage analysis, evidence-based reasoning, and vocabulary in context',
     status: 'available',
     dependsOn: [],
     col: 0,
     estimatedMinutes: 45,
   },
   {
-    id: 'skill-sat-math-no-calc',
-    title: 'Math: No Calculator',
-    description: 'Heart of algebra, problem solving with data analysis, and mental math strategies',
+    id: 'skill-sat-algebra',
+    title: 'Algebra & Functions',
+    description: 'Linear equations, systems, and functions — the most-tested Digital SAT Math domain',
     status: 'available',
     dependsOn: [],
     col: 0,
     estimatedMinutes: 50,
   },
   {
-    id: 'skill-sat-writing',
-    title: 'Writing & Language',
-    description: 'Standard English conventions, expression of ideas, and rhetoric analysis',
+    id: 'skill-sat-english-conventions',
+    title: 'English Conventions',
+    description: 'Grammar, punctuation, and sentence structure — the highest-ROI Reading & Writing domain',
     status: 'locked',
-    dependsOn: ['skill-sat-reading'],
+    dependsOn: ['skill-sat-rw-foundations'],
     col: 1,
     estimatedMinutes: 40,
   },
   {
-    id: 'skill-sat-math-calc',
-    title: 'Math: Calculator',
-    description: 'Advanced math, additional topics in math, and calculator efficiency',
+    id: 'skill-sat-advanced-math',
+    title: 'Advanced Math',
+    description: 'Quadratics, nonlinear functions, data analysis, geometry & trigonometry, and Desmos calculator strategy',
     status: 'locked',
-    dependsOn: ['skill-sat-math-no-calc'],
+    dependsOn: ['skill-sat-algebra'],
     col: 1,
     estimatedMinutes: 50,
   },
   {
-    id: 'skill-sat-evidence-analysis',
-    title: 'Evidence-Based Analysis',
-    description: 'Cross-section analysis integrating reading, writing, and data reasoning',
+    id: 'skill-sat-adaptive-strategy',
+    title: 'Adaptive Test Strategy',
+    description: 'How Module 1 performance determines Module 2 difficulty — and how to use the adaptive system to your advantage',
     status: 'locked',
-    dependsOn: ['skill-sat-writing', 'skill-sat-math-calc'],
+    dependsOn: ['skill-sat-english-conventions', 'skill-sat-advanced-math'],
     col: 2,
     estimatedMinutes: 35,
   },
   {
-    id: 'skill-sat-practice-sim',
-    title: 'Full-Length Practice Simulation',
-    description: 'Timed full-section practice with score analysis and error classification',
+    id: 'skill-sat-full-practice',
+    title: 'Full-Length Practice',
+    description: 'Timed two-module adaptive simulations with score projection and error classification',
     status: 'locked',
-    dependsOn: ['skill-sat-evidence-analysis'],
+    dependsOn: ['skill-sat-adaptive-strategy'],
     col: 3,
     estimatedMinutes: 60,
   },
   {
-    id: 'skill-sat-test-day',
-    title: 'Test-Day Strategy',
-    description: 'Time management, stress handling, pacing, and day-of logistics',
+    id: 'skill-sat-score-max',
+    title: 'Score Maximization & Test Day',
+    description: 'Pacing optimization, Desmos strategy, and test-day execution plan for the Digital SAT',
     status: 'locked',
-    dependsOn: ['skill-sat-practice-sim'],
+    dependsOn: ['skill-sat-full-practice'],
     col: 4,
-    estimatedMinutes: 25,
+    estimatedMinutes: 30,
   },
 ];
 
 const SAT_EXAM_SKILL_PACKS = [
   {
     id: 'skillpack-sat-strategy',
-    name: 'SAT Question Strategy Coach',
-    intent: 'SAT question strategy',
-    instructions: 'Coach SAT test-takers on question strategy: evidence identification, process of elimination, time allocation, and trap avoidance.',
-    exampleInput: 'I keep picking answers that sound right but are wrong on reading passages.',
-    exampleOutput: 'Use the "point to the line" method: before confirming an answer, identify the exact sentence in the passage that supports it. If you cannot find it, the answer is likely a trap.',
+    name: 'Digital SAT Strategy Coach',
+    intent: 'SAT adaptive test strategy',
+    instructions: 'Coach students on Digital SAT adaptive strategy: Module 1 accuracy, evidence-based reasoning, process of elimination, Desmos calculator usage, and reasoning-trap avoidance for short 25-150 word passages.',
+    exampleInput: 'I keep picking answers that sound right on reading but they are wrong.',
+    exampleOutput: 'You are falling for the "plausible but unsupported" trap. Digital SAT passages are only 25-150 words — every answer must be directly supported by the text. Point to the EXACT sentence that supports your choice. If you cannot find it within 10 seconds, eliminate that option.',
   },
   {
     id: 'skillpack-sat-drill',
-    name: 'SAT Drill & Error Analysis Coach',
-    intent: 'SAT practice and error analysis',
-    instructions: 'Generate targeted SAT practice drills by section and difficulty. After practice, analyze error patterns and recommend specific improvement strategies.',
-    exampleInput: 'I want to practice Math No-Calculator at medium difficulty.',
-    exampleOutput: 'Here are 5 Heart of Algebra questions. Focus on: translating word problems into equations, solving systems of equations, and checking your work by substitution.',
+    name: 'SAT Drill & Error Diagnosis Coach',
+    intent: 'SAT practice and reasoning error analysis',
+    instructions: 'Generate targeted Digital SAT practice drills by domain. After practice, diagnose REASONING errors — identify the thinking pattern that led to the mistake and prescribe specific process fixes.',
+    exampleInput: 'I keep making grammar mistakes on conventions questions.',
+    exampleOutput: 'Your error pattern is subject-verb agreement across non-essential clauses. When you see commas, mentally delete the clause between them, then check if subject and verb agree. Try it: "The team, which included researchers from three universities, [has/have] published their findings." Delete the clause → "The team has published."',
   },
 ];
 
@@ -351,61 +351,61 @@ const SAT_EXAM_COMMANDS = [
     id: 'cmd-sat-drill',
     name: 'SAT Drill',
     trigger: '/sat-drill',
-    description: 'Generate a timed SAT practice drill for a specific section.',
+    description: 'Generate a targeted Digital SAT practice drill by domain.',
     skillPackId: 'skillpack-sat-drill',
-    defaultPrompt: 'Generate a focused SAT practice drill for this section.',
-    outputHint: 'Return a set of practice questions with difficulty labels and time targets.',
+    defaultPrompt: 'Generate a focused Digital SAT practice drill for this domain.',
+    outputHint: 'Return practice questions tagged by domain, difficulty, and common reasoning traps to watch for.',
     defaultContentPackId: 'sat-error-analysis-trace',
     inputFields: [
       {
-        id: 'section',
-        label: 'Section',
-        placeholder: 'Reading / Writing / Math No-Calc / Math Calc',
+        id: 'domain',
+        label: 'Domain',
+        placeholder: 'Craft & Structure / Conventions / Algebra / Advanced Math',
         required: true,
         type: 'text' as const,
       },
       {
         id: 'difficulty',
         label: 'Difficulty',
-        placeholder: 'Easy / Medium / Hard',
+        placeholder: 'Module 1 level / Module 2 level',
         required: false,
         type: 'text' as const,
       },
     ],
   },
   {
-    id: 'cmd-vocab-review',
-    name: 'Vocab Review',
-    trigger: '/vocab-review',
-    description: 'Generate SAT vocabulary flashcards from recent passages.',
+    id: 'cmd-strategy-cards',
+    name: 'Strategy Cards',
+    trigger: '/strategy-cards',
+    description: 'Generate SAT strategy cards for common reasoning traps.',
     skillPackId: 'skillpack-sat-strategy',
-    defaultPrompt: 'Generate SAT vocabulary flashcards focused on this topic.',
-    outputHint: 'Return flashcards with vocabulary in context, not isolated definitions.',
+    defaultPrompt: 'Generate strategy cards for common Digital SAT reasoning traps.',
+    outputHint: 'Return flashcards that teach reasoning processes, not just vocabulary definitions.',
     defaultContentPackId: 'sat-vocab-flashcards',
     inputFields: [
       {
         id: 'topic',
-        label: 'Vocabulary focus',
-        placeholder: 'Context clues / Rhetoric / Word choice',
+        label: 'Strategy focus',
+        placeholder: 'Purpose vs. topic / Grammar traps / Desmos strategy / Backsolving',
         required: true,
         type: 'text' as const,
       },
     ],
   },
   {
-    id: 'cmd-error-analysis',
-    name: 'Error Analysis',
-    trigger: '/error-analysis',
-    description: 'Analyze error patterns from practice questions.',
+    id: 'cmd-error-diagnosis',
+    name: 'Error Diagnosis',
+    trigger: '/diagnose',
+    description: 'Diagnose reasoning error patterns from practice results.',
     skillPackId: 'skillpack-sat-drill',
-    defaultPrompt: 'Analyze my error patterns for this section and recommend fixes.',
-    outputHint: 'Return error categories, frequency, and specific fix strategies.',
-    defaultContentPackId: 'sat-score-progress-metrics',
+    defaultPrompt: 'Diagnose my reasoning error patterns and prescribe specific process fixes.',
+    outputHint: 'Return reasoning error categories, frequency, root cause, and process fix for each.',
+    defaultContentPackId: 'sat-error-analysis-trace',
     inputFields: [
       {
-        id: 'section',
-        label: 'Section to analyze',
-        placeholder: 'Reading / Writing / Math',
+        id: 'domain',
+        label: 'Domain to analyze',
+        placeholder: 'R&W Conventions / Craft & Structure / Algebra / Advanced Math',
         required: true,
         type: 'text' as const,
       },
@@ -512,64 +512,73 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
   },
   {
     id: 'pkg-sat-exam-prep',
-    title: 'SAT Exam Prep Sprint',
-    subtitle: 'Reading + Writing + Math mastery for test day',
-    defaultSessionTitle: 'SAT Exam Prep Session',
-    intakeTitle: 'Personalize your SAT Prep plan',
+    title: 'Digital SAT Prep Sprint',
+    subtitle: 'Adaptive strategy + reasoning mastery for the 2024+ Digital SAT',
+    defaultSessionTitle: 'Digital SAT Prep Session',
+    intakeTitle: 'Personalize your Digital SAT prep plan',
     intakeDescription:
-      'Share your starting point so Knovia can build a plan that targets your weak areas.',
+      'Share your starting point so Knovia can diagnose your biggest score opportunities and build a targeted plan.',
     creatorPrompt:
-      'Upload a recent practice test score report and indicate your target score. This helps us focus on high-impact areas.',
+      'Upload a recent Digital SAT practice test score report and indicate your target score and test date. This helps us focus on your highest-ROI domains.',
     intakeFields: [
       {
         id: 'score-report',
         label: 'Practice Test Score Report',
-        description: 'Upload a recent practice test or score report (PDF, PNG, JPG).',
+        description: 'Upload a recent Digital SAT practice test or score report (PDF, PNG, JPG).',
         type: 'file',
         required: true,
         accept: '.pdf,.png,.jpg',
-        sampleValue: 'sample-sat-score-report.pdf',
+        sampleValue: 'sample-digital-sat-score-report.pdf',
       },
       {
         id: 'target-score',
         label: 'Target SAT Score',
-        description: 'What total score are you aiming for?',
+        description: 'What total score are you aiming for? (Digital SAT: 400-1600)',
         type: 'text',
         required: true,
         placeholder: '1400',
-        sampleValue: '1450',
+        sampleValue: '1400',
+      },
+      {
+        id: 'test-date',
+        label: 'Test Date',
+        description: 'When is your next SAT? This determines your prep timeline.',
+        type: 'text',
+        required: false,
+        placeholder: 'June 7, 2025',
+        sampleValue: 'June 7, 2025',
       },
       {
         id: 'weak-areas',
-        label: 'Weak Areas',
-        description: 'Optional: describe which sections or question types you struggle with most.',
+        label: 'Weakest Areas',
+        description: 'Optional: describe which question types you struggle with most.',
         type: 'text',
         required: false,
-        placeholder: 'Reading comprehension, algebra word problems',
-        sampleValue: 'Reading evidence questions, no-calculator algebra',
+        placeholder: 'Standard English Conventions, algebra word problems',
+        sampleValue: 'English Conventions, algebra word problems',
       },
     ],
     skillNodes: SAT_EXAM_SKILL_NODES,
     skillPacks: SAT_EXAM_SKILL_PACKS,
     commands: SAT_EXAM_COMMANDS,
     runtimePolicy: {
-      systemPrompt: 'You are an SAT prep tutor focused on strategic test preparation, score improvement, and building confidence through targeted practice.',
-      guardrails: 'Always explain the reasoning behind correct answers. Never just give answers without rationale. Encourage process over memorization.',
+      systemPrompt: 'You are a Digital SAT prep tutor focused on adaptive test strategy, reasoning-error diagnosis, and building confidence through targeted practice.',
+      guardrails: 'Always explain the reasoning behind correct answers. Diagnose why the student chose wrong answers, not just what the right answer is. Encourage reasoning processes over memorization.',
     },
     suggestedActions: [
-      { label: 'Run SAT drill', prompt: '/sat-drill section="Reading" difficulty="Medium"' },
-      { label: 'Review vocabulary', prompt: '/vocab-review topic="Context clues"' },
+      { label: 'Diagnose my errors', prompt: '/diagnose domain="R&W Conventions"' },
+      { label: 'Show strategy cards', prompt: '/strategy-cards topic="Purpose vs. topic"' },
     ],
     planningHints: {
       purposeActions: [
-        { label: 'Improve my SAT score', prompt: 'My main goal is to improve my SAT score for college admissions.' },
-        { label: 'Prepare for a test date', prompt: 'I have a specific test date coming up and need to prepare efficiently.' },
-        { label: 'Strengthen weak sections', prompt: 'I want to focus on my weakest sections to maximize score improvement.' },
+        { label: 'Break 1400', prompt: 'My main goal is to break 1400. I am currently scoring around 1180 and need to close the gap in 8 weeks.' },
+        { label: 'Close my R&W gap', prompt: 'My Math score is strong but Reading & Writing is dragging my total down. I need to close that gap.' },
+        { label: 'Ace Module 1', prompt: 'I want to nail Module 1 in both sections so I get the harder Module 2 and unlock the top score range.' },
       ],
       targetActions: [
-        { label: 'Top-tier universities', prompt: 'I am targeting top-tier universities that expect scores above 1400.' },
-        { label: 'State universities', prompt: 'I am targeting state universities where a solid score around 1200-1300 is competitive.' },
-        { label: 'No specific target', prompt: 'No specific target yet — I want the highest score I can get.' },
+        { label: '1500+ (top-tier schools)', prompt: 'I am targeting 1500+ for highly selective universities.' },
+        { label: '1300-1400 (competitive)', prompt: 'I need a 1300-1400 for competitive state universities and merit scholarships.' },
+        { label: 'Maximize from current', prompt: 'I just want the highest score I can get from where I am now.' },
       ],
     },
     source: 'seed',
@@ -577,6 +586,51 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
 ];
 
 const DEFAULT_COURSE_PACKAGE_ID = 'pkg-sat-exam-prep';
+
+/* ── Pre-seeded branch definitions per skill (for rich canvas display) ── */
+interface SeedBranch {
+  intent: BranchIntent;
+  title: string;
+}
+
+const SKILL_SEED_BRANCHES: Record<string, SeedBranch[]> = {
+  'Reading & Writing': [
+    { intent: 'explain', title: 'Key R&W Concepts' },
+    { intent: 'ask', title: 'Evidence-Based Questions' },
+    { intent: 'practice', title: 'Passage Analysis Drill' },
+  ],
+  'Algebra & Functions': [
+    { intent: 'explain', title: 'Linear Systems Overview' },
+    { intent: 'ask', title: 'Word Problem Strategy' },
+    { intent: 'practice', title: 'Equation Drill' },
+  ],
+  'English Conventions': [
+    { intent: 'explain', title: 'Grammar Rules That Matter' },
+    { intent: 'ask', title: 'Subject-Verb Agreement' },
+    { intent: 'practice', title: 'Conventions Drill' },
+    { intent: 'compare', title: 'Comma vs. Semicolon' },
+  ],
+  'Advanced Math': [
+    { intent: 'explain', title: 'Quadratics & Polynomials' },
+    { intent: 'ask', title: 'Desmos Calculator Tips' },
+    { intent: 'practice', title: 'Advanced Problem Set' },
+  ],
+  'Adaptive Test Strategy': [
+    { intent: 'explain', title: 'How Module 1 → Module 2 Works' },
+    { intent: 'ask', title: 'When to Slow Down on M1' },
+    { intent: 'compare', title: 'Easy M2 vs. Hard M2 Scoring' },
+  ],
+  'Full-Length Practice': [
+    { intent: 'explain', title: 'Pacing Strategy' },
+    { intent: 'practice', title: 'Timed Section Drill' },
+    { intent: 'ask', title: 'Score Projection' },
+  ],
+  'Score Maximization & Test Day': [
+    { intent: 'explain', title: 'Test-Day Execution Plan' },
+    { intent: 'ask', title: 'Desmos vs. Mental Math' },
+    { intent: 'practice', title: 'Final Review Drill' },
+  ],
+};
 
 function getCoursePackageById(packages: CoursePackageConfig[], id: string): CoursePackageConfig {
   return packages.find((item) => item.id === id) ?? packages[0];
@@ -633,11 +687,15 @@ function generateLearningReport(coursePackage: CoursePackageConfig): LearningPla
   });
 
   return {
-    goal: `Become interview-ready for ${coursePackage.title} through a structured 8-week sprint.`,
+    goal: coursePackage.id === 'pkg-sat-exam-prep'
+      ? `Reach your target Digital SAT score through a personalized 8-week adaptive prep sprint.`
+      : `Become interview-ready for ${coursePackage.title} through a structured 8-week sprint.`,
     currentLevel: 'Learner baseline captured from uploaded materials and optional context fields.',
     milestones,
     weeklyCadence: '4 focused sessions/week (45-60 min) + one case rehearsal block',
-    outcomeSignal: `Can complete ${coursePackage.title} case drills with clear, defensible recommendations`,
+    outcomeSignal: coursePackage.id === 'pkg-sat-exam-prep'
+      ? `Consistently scoring within 30 points of target on full-length adaptive practice tests`
+      : `Can complete ${coursePackage.title} case drills with clear, defensible recommendations`,
   };
 }
 
@@ -1331,28 +1389,39 @@ function App() {
     if (!activeWorkspaceId) {
       return null;
     }
-    const parent = nodeMap.get(parentId);
-    if (!parent) {
-      return null;
+    // Use nodeMap first, then fall back to scanning the latest state via setNodes.
+    // This handles the case where a parent was just created in the same event loop.
+    let parentDepth: number | null = null;
+    const parentFromMap = nodeMap.get(parentId);
+    if (parentFromMap) {
+      parentDepth = parentFromMap.depth;
     }
 
     const sessionId = nextId('session');
-    const nextNode: SessionNode = {
-      id: sessionId,
-      title,
-      kind,
-      intent,
-      source,
-      status: 'active',
-      parentId,
-      depth: parent.depth + 1,
-      createdAt: nextTimeline(),
-      rank,
-      originText,
-      skillNodeId,
-    };
+    const timeline = nextTimeline();
 
     setNodes((prev) => {
+      // Resolve parent depth from latest state if not already found
+      if (parentDepth === null) {
+        const parentFromPrev = prev.find((n) => n.id === parentId);
+        if (!parentFromPrev) return prev; // parent truly doesn't exist
+        parentDepth = parentFromPrev.depth;
+      }
+
+      const nextNode: SessionNode = {
+        id: sessionId,
+        title,
+        kind,
+        intent,
+        source,
+        status: 'active',
+        parentId,
+        depth: parentDepth! + 1,
+        createdAt: timeline,
+        rank,
+        originText,
+        skillNodeId,
+      };
       return [...prev, nextNode];
     });
     setSessions((prev) => {
@@ -1436,6 +1505,10 @@ function App() {
     // Pre-seed global inbox with proactive items
     const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
     setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
+
+    // Default to Skill Map view so the tree is visible immediately
+    setCanvasView('skill-tree');
+    setCanvasOpen(true);
   };
 
   const handlePlanningMessage = (rawMessage: string) => {
@@ -1714,6 +1787,34 @@ function App() {
         setSessionRichBlocks(topicSessionId, topicBlocks);
       }
     }
+
+    // Pre-seed branch nodes for a rich canvas display
+    const seedBranches = SKILL_SEED_BRANCHES[skillNode.title];
+    if (seedBranches && topicSessionId) {
+      for (const branch of seedBranches) {
+        createSubSession({
+          parentId: topicSessionId,
+          kind: 'branch',
+          intent: branch.intent,
+          source: 'agent-suggestion',
+          title: branch.title,
+          promptProfile: branchPromptProfile(branch.intent),
+          contextNote: `${branch.title} — pre-seeded exploration for ${skillNode.title}`,
+          seedMessages: [
+            {
+              id: nextId('msg'),
+              role: 'assistant',
+              content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
+              timestamp: createTimestamp(),
+            },
+          ],
+          skillNodeId,
+        });
+      }
+      // Navigate back to the topic session (createSubSession activates the last branch)
+      activateSession(topicSessionId);
+    }
+
     setCanvasView('skill-tree');
     setCanvasOpen(true);
   };
@@ -1722,30 +1823,96 @@ function App() {
     if (!activeWorkspaceId) {
       return;
     }
+
+    // Compute the next skill nodes before the state update so we can detect newly unlocked skills
+    const mainSess = sessions[MAIN_SESSION_ID] as MainSessionRecord | undefined;
+    if (!mainSess) return;
+    const prevSkillNodes = mainSess.skillNodes;
+    const skill = getSkillById(prevSkillNodes, skillNodeId);
+    if (!skill || skill.status !== 'in-progress') return;
+
+    const nextSkillNodes = completeSkillAndUnlock(prevSkillNodes, skillNodeId);
+
     setSessions((prev) => {
       const session = prev[MAIN_SESSION_ID] as MainSessionRecord;
       if (!session) return prev;
-
-      const skill = getSkillById(session.skillNodes, skillNodeId);
-      if (!skill || skill.status !== 'in-progress') {
-        return prev;
-      }
-
       return {
         ...prev,
         [MAIN_SESSION_ID]: {
           ...session,
-          skillNodes: completeSkillAndUnlock(session.skillNodes, skillNodeId),
+          skillNodes: nextSkillNodes,
         },
       };
     });
 
     // Generate global inbox items for skill completion
-    const completedSkill = mainSkillNodes.find((n) => n.id === skillNodeId);
+    const completedSkill = getSkillById(nextSkillNodes, skillNodeId);
     if (completedSkill) {
-      const updatedNodes = completeSkillAndUnlock(mainSkillNodes, skillNodeId);
-      const completionItems = generateSkillCompletionInboxItems(completedSkill, updatedNodes, nextTimeline());
+      const completionItems = generateSkillCompletionInboxItems(completedSkill, nextSkillNodes, nextTimeline());
       setGlobalInbox((prev) => dedupeInboxItems(prev, completionItems));
+    }
+
+    // Auto-create sessions for newly unlocked skills so they look populated immediately
+    const newlyUnlocked = nextSkillNodes.filter(
+      (n) => n.status === 'available' && prevSkillNodes.find((p) => p.id === n.id)?.status === 'locked',
+    );
+    for (const unlocked of newlyUnlocked) {
+      // Skip if already has a session
+      if (unlocked.sessionId) continue;
+
+      const topicSessionId = createSubSession({
+        parentId: MAIN_SESSION_ID,
+        kind: 'topic',
+        title: unlocked.title,
+        promptProfile: 'topic-tutor',
+        contextNote: `Teaching: ${unlocked.title}. ${unlocked.description}`,
+        seedMessages: [
+          {
+            id: nextId('msg'),
+            role: 'assistant',
+            content: topicIntroFor(unlocked.title, unlocked.description),
+            timestamp: createTimestamp(),
+          },
+        ],
+        skillNodeId: unlocked.id,
+      });
+
+      // Pre-load default content
+      const defaultPackId = TOPIC_DEFAULT_PACKS[unlocked.title]?.[0];
+      if (defaultPackId && topicSessionId) {
+        const topicBlocks = resolvePackById(defaultPackId);
+        if (topicBlocks) setSessionRichBlocks(topicSessionId, topicBlocks);
+      }
+
+      // Pre-seed branches
+      const seedBranches = SKILL_SEED_BRANCHES[unlocked.title];
+      if (seedBranches && topicSessionId) {
+        for (const branch of seedBranches) {
+          createSubSession({
+            parentId: topicSessionId,
+            kind: 'branch',
+            intent: branch.intent,
+            source: 'agent-suggestion',
+            title: branch.title,
+            promptProfile: branchPromptProfile(branch.intent),
+            contextNote: `${branch.title} — pre-seeded exploration for ${unlocked.title}`,
+            seedMessages: [
+              {
+                id: nextId('msg'),
+                role: 'assistant',
+                content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
+                timestamp: createTimestamp(),
+              },
+            ],
+            skillNodeId: unlocked.id,
+          });
+        }
+      }
+    }
+
+    // Stay on the current session (don't navigate to newly created sessions)
+    if (skill.sessionId) {
+      activateSession(skill.sessionId);
     }
   };
 

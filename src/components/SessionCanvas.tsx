@@ -4,11 +4,13 @@ import {
   BookOpen,
   CheckCircle2,
   CircleDot,
+  GitBranch,
   HelpCircle,
   Lightbulb,
   Lock,
   RotateCcw,
   TreePine,
+  Zap,
 } from 'lucide-react';
 import {
   MainSessionPhase,
@@ -75,6 +77,22 @@ function nodeMeta(node: SessionNode): { label: string; icon: JSX.Element; tone: 
       label: 'Explain',
       icon: <Lightbulb className="h-4 w-4" />,
       tone: 'text-orange-700 bg-orange-100 border-orange-200',
+    };
+  }
+
+  if (node.intent === 'practice') {
+    return {
+      label: 'Practice',
+      icon: <Zap className="h-4 w-4" />,
+      tone: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+    };
+  }
+
+  if (node.intent === 'compare') {
+    return {
+      label: 'Compare',
+      icon: <GitBranch className="h-4 w-4" />,
+      tone: 'text-purple-700 bg-purple-100 border-purple-200',
     };
   }
 
@@ -424,31 +442,20 @@ export default function SessionCanvas({
                   variants={fadeSlideY(reducedMotion, 8)}
                   className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100"
                 >
-                  <BookOpen className="h-6 w-6 text-gray-400" />
+                  {selectedSkill.status === 'locked' ? (
+                    <Lock className="h-6 w-6 text-gray-400" />
+                  ) : (
+                    <BookOpen className="h-6 w-6 text-gray-400" />
+                  )}
                 </motion.div>
                 <motion.div variants={fadeSlideY(reducedMotion, 8)}>
                   <p className="font-heading text-base font-semibold text-gray-700">{selectedSkill.title}</p>
-                  <p className="mt-1 text-sm text-gray-500">{selectedSkill.description}</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {selectedSkill.status === 'locked'
+                      ? 'Complete previous skills to unlock'
+                      : selectedSkill.description}
+                  </p>
                 </motion.div>
-
-                {selectedSkill.status === 'available' && (
-                  <motion.button
-                    type="button"
-                    onClick={() => onSelectSkillNode(selectedSkill.id)}
-                    whileHover={reducedMotion ? undefined : { y: -1 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                    transition={springFor(reducedMotion, 'snappy')}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
-                  >
-                    Start Session →
-                  </motion.button>
-                )}
-
-                {selectedSkill.status === 'locked' && (
-                  <motion.p className="text-xs text-gray-500" variants={fadeSlideY(reducedMotion, 8)}>
-                    Complete previous skills to unlock
-                  </motion.p>
-                )}
               </motion.div>
             ) : (
               <div
