@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, ChevronRight, SendHorizontal, Sparkles, WandSparkles, Zap } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { CONTENT_PACK_LABELS, type ContentPackId } from '../data/richReplies';
 import {
   AnySessionRecord,
@@ -423,7 +424,19 @@ export default function SessionChat({
                         : null;
 
                       if (!commandCard) {
-                        return <p className="whitespace-pre-wrap">{message.content}</p>;
+                        return (
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mb-2 list-disc pl-4 last:mb-0">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-2 list-decimal pl-4 last:mb-0">{children}</ol>,
+                              li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        );
                       }
 
                       return <CommandCard card={commandCard} reducedMotion={reducedMotion} />;
