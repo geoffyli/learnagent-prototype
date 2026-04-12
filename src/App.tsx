@@ -1670,17 +1670,17 @@ function App() {
             content: nextTurn.agentMessage,
           });
           setPlanningTurnIndex(nextIdx);
-        }, 600);
+        }, 300);
         planningTimeoutsRef.current.push(questionTimeout);
       } else {
         // All steps done — transition to learning
         setPlanningTurnIndex(script.length);
         const transitionTimeout = setTimeout(() => {
           finishPlanning();
-        }, 800);
+        }, 500);
         planningTimeoutsRef.current.push(transitionTimeout);
       }
-    }, 600);
+    }, 300);
     planningTimeoutsRef.current.push(ackTimeout);
   };
 
@@ -1759,7 +1759,6 @@ function App() {
     if (!activeNode) {
       return;
     }
-    setCanvasOpen(false);
     const label = selectedText.slice(0, 42);
     const title = `${kind === 'ask' ? 'Ask' : 'Explain'} • ${label}`;
     const promptProfile = branchPromptProfile(kind);
@@ -1797,6 +1796,10 @@ function App() {
       ],
       skillNodeId: currentSkillNodeId,
     });
+
+    // Show the skill tree so the new branch node is visible
+    setCanvasView('skill-tree');
+    setCanvasOpen(true);
   };
 
   /* ---------- Global inbox handlers ---------- */

@@ -105,7 +105,7 @@ const INTENT_RULES: IntentRule[] = [
   /* SAT intent rules — Digital SAT 2024+ (baseScore:1 so SAT rules win keyword ties over Data Analyst rules) */
   {
     packId: 'sat-vocab-flashcards',
-    keywords: ['flashcard', 'strategy card', 'tutor trick', 'purpose vs topic', 'grammar trap', 'desmos', 'calculator strategy', 'reasoning trap'],
+    keywords: ['flashcard', 'strategy card', 'tutor trick', 'purpose vs topic', 'grammar trap', 'desmos', 'calculator strategy'],
     reason: 'SAT strategy cards intent',
     baseScore: 1,
   },
@@ -117,13 +117,13 @@ const INTENT_RULES: IntentRule[] = [
   },
   {
     packId: 'sat-common-traps',
-    keywords: ['trap', 'common mistake', 'wrong answer', 'trick', 'pitfall', 'sat mistake', 'reasoning error', 'module 1', 'rushing'],
+    keywords: ['common trap', 'common mistake', 'wrong answer', 'trick', 'pitfall', 'sat mistake', 'sat trap', 'module 1', 'rushing'],
     reason: 'SAT reasoning traps intent',
     baseScore: 1,
   },
   {
     packId: 'sat-error-analysis-trace',
-    keywords: ['error analysis', 'wrong answer analysis', 'mistake pattern', 'error pattern', 'reasoning trace', 'why did i miss', 'practice review', 'diagnose'],
+    keywords: ['error analysis', 'wrong answer analysis', 'mistake pattern', 'error pattern', 'reasoning trace', 'reasoning error', 'why did i miss', 'practice review', 'diagnose'],
     reason: 'SAT reasoning error diagnosis intent',
     baseScore: 1,
   },
@@ -178,17 +178,19 @@ export function matchIntent(message: string): IntentMatch | null {
 
   let best: IntentMatch | null = null;
   for (const rule of INTENT_RULES) {
-    let score = rule.baseScore ?? 0;
+    const base = rule.baseScore ?? 0;
+    let keywordHits = 0;
     for (const keyword of rule.keywords) {
       if (lower.includes(keyword.toLowerCase())) {
-        score += 1;
+        keywordHits += 1;
       }
     }
 
-    if (score <= 0) {
+    if (keywordHits === 0) {
       continue;
     }
 
+    const score = base + keywordHits;
     if (!best || score > best.score) {
       best = {
         packId: rule.packId,

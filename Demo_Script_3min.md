@@ -73,7 +73,7 @@
 
 ## Beat 5 — Chat & Branching (1:45–2:10)
 
-**Action:** Type in the chat: *"Why do I keep picking wrong answers on purpose questions?"* Wait for the multi-paragraph response.
+**Action:** Type in the chat: *"How do I tell the difference between an answer that is true and one that actually answers the question?"* Wait for the multi-paragraph response.
 
 **Script:**
 > "I'll ask a real question a struggling student would ask. Look at the response — it gives a structured reasoning process, not just a generic answer."
@@ -126,7 +126,7 @@ Paste these directly into chat to guarantee rich content output:
 | `"Show me SAT strategy flashcards"` | **Flashcard deck** with reasoning traps |
 | `"Diagnose my reasoning errors"` | **Debug trace** + **code block** with error table |
 | `"Show me my score diagnosis"` | **Metric strip** — domain accuracy with point opportunities |
-| `"What are common SAT reasoning traps?"` | **Callout stack** — 4 color-coded traps |
+| `"What are common SAT mistake traps?"` | **Callout stack** — 4 color-coded traps |
 | `@content:sat-study-plan-timeline` | **Timeline** + **flashcard deck** — personalized 8-week plan |
 | `@content:sat-test-day-checklist` | **Checklist** — Digital SAT test-day execution plan |
 
