@@ -52,61 +52,63 @@
 
 ---
 
-## Beat 4 — Skill Tree & Content Showcase (1:10–1:45)
+## Beat 4 — Skill Tree & Structured Content (1:10–1:45)
 
 **Action:** Point to the **skill progress bar** at the top. Highlight that **two skills** are available simultaneously: Reading & Writing and Algebra & Functions. Click **"Reading & Writing"** to open it.
 
 **Script:**
-> "This is the skill tree — and it mirrors the actual Digital SAT structure. Reading & Writing and Math start in parallel, just like the real test. They converge into Adaptive Test Strategy — the skill that teaches students how Module 1 performance determines their score ceiling."
+> "This is the skill tree — and it mirrors the actual Digital SAT. Reading & Writing and Math start in parallel, just like the real test. They converge into Adaptive Test Strategy — the skill that teaches how Module 1 performance determines your score ceiling."
 
-**Action:** Point to the **Content** tab in the side panel — it auto-loads a **comparison table** and **metric strip** showing the R&W domain breakdown.
+**Action:** The **Content** panel auto-opens on the right with a **comparison table** and **metric strip**.
 
 **Script:**
-> "Each skill auto-loads structured content in the side panel. Look at this — a comparison table breaking down domain accuracy, and metric cards showing exactly where the 220-point gap lives. This is not just text — it is interactive, structured content generated for this specific student."
+> "Look at what loaded automatically — a comparison table showing domain accuracy, and metric cards diagnosing exactly where the 220-point gap lives. Standard English Conventions at 52% accuracy — that's roughly 60 points on the table. This is structured, visual content — not just chat text."
+
+**Action:** Click the **Skill Tree** tab to show the pre-seeded branch graph. Point to the 4 colored nodes and their connections.
+
+**Script:**
+> "Switch to the Skill Tree tab — each skill comes pre-populated with exploration branches: Explain, Ask, and Practice nodes, all connected to the topic. Every node is a separate workspace you can dive into."
 
 ---
 
-## Beat 5 — Branching & Exploration (1:45–2:10)
+## Beat 5 — Chat & Branching (1:45–2:10)
 
-**Action:** Type in the chat: *"Why do I keep picking wrong answers on purpose questions?"* Wait for the response. Then **select a portion of the assistant's reply text** with your mouse.
-
-**Script:**
-> "Now I'll ask a real question. Watch what happens when I select part of the answer."
-
-**Action:** Click **"Explore This"** in the popover that appears.
+**Action:** Type in the chat: *"Why do I keep picking wrong answers on purpose questions?"* Wait for the multi-paragraph response.
 
 **Script:**
-> "Knovia creates a side exploration — a separate workspace linked to this skill. My main thread stays clean while I go deep on this concept. Look at the skill tree panel — you can see the main thread, the skill node, and the exploration branch all connected as a graph."
+> "I'll ask a real question a struggling student would ask. Look at the response — it gives a structured reasoning process, not just a generic answer."
+
+**Action:** **Select a portion of the assistant's reply text** with your mouse. Click **"Explore This"** in the popover.
+
+**Script:**
+> "Now watch — I select part of the answer and click 'Explore This.' Knovia creates a side exploration. My main thread stays clean while I go deep on this concept. The skill tree graph now shows a new branch connected to the topic."
 
 ---
 
-## Beat 6 — Flashcards & Skill Completion (2:10–2:50)
+## Beat 6 — More Content Types & Completion (2:10–2:50)
 
-**Action:** Click **"Reading & Writing"** in the skill bar at the top to return to the skill workspace. Then type *"Show me SAT strategy flashcards"*. The **Content tab** updates with a flashcard deck.
-
-**Script:**
-> "Back in the skill workspace, I'll ask for strategy cards. These are not Quizlet-style definitions — look at this. Each card teaches a reasoning process. This one teaches the 'purpose versus topic' trap — the number one reason students miss Craft & Structure questions."
-
-**Action:** Click on the flashcard to flip it. Click **Next** to show a second card.
+**Action:** Click **"Reading & Writing"** in the skill bar to return. Type *"Show me SAT strategy flashcards"*. The **Content** panel updates with a **flashcard deck**.
 
 **Script:**
-> "Flip to see the strategy. Navigate to the next card — it teaches when to trust a graph versus the passage text."
+> "Back in the main workspace. I ask for strategy cards — and look what appears. Each card teaches a reasoning process, not a vocabulary definition. This one teaches the purpose-versus-topic trap. Flip it to see the strategy."
+
+**Action:** Click the flashcard to flip it. Click **Next** to show the second card.
 
 **Action:** Click **"✓ Complete"** next to Reading & Writing in the skill bar.
 
 **Script:**
-> "When the student is ready, they mark the skill complete — and watch what unlocks."
+> "Mark it complete — and watch what unlocks."
 
-**Action:** Point to the skill bar — Reading & Writing shows a checkmark, **English Conventions** changes from Locked to Ready. **Algebra & Functions** was already available.
+**Action:** Point to the skill bar — Reading & Writing shows a checkmark, **English Conventions** changes from Locked to Ready. Click **"English Conventions"** to enter it.
 
 **Script:**
-> "English Conventions unlocks — their weakest domain, where 60 points are waiting. And look — it auto-loads a callout stack with color-coded reasoning traps. Each skill surfaces different content: comparison tables, flashcards, callout stacks, error traces, timelines. The system structures every piece of learning."
+> "English Conventions unlocks — their weakest domain, where 60 points are waiting. Click in — and look at the content that loaded: a callout stack with four color-coded reasoning traps. Anti-patterns in red, warnings in amber, tips in green, insights in blue. Every skill surfaces a different type of structured content."
 
 ---
 
 ## Beat 7 — Close (2:50–3:00)
 
-**Action:** Stay on the skill tree view.
+**Action:** Stay on the content view showing the callout stack.
 
 **Script:**
 > "That is Knovia — structured content, non-linear skill progression, adaptive strategy, and side explorations, all in one system. Not a chatbot. Not a course player. A structured learning system that shows you where your score is hiding."
@@ -119,14 +121,14 @@ Paste these directly into chat to guarantee rich content output:
 
 | Prompt | Expected Content |
 |---|---|
-| `"Show me the Digital SAT adaptive structure"` | Concept map with Module 1 → adaptive gate → Module 2 |
-| `"Where am I losing points in R&W?"` | Comparison table + score diagnosis metrics |
-| `"Show me SAT strategy flashcards"` | Flashcard deck with reasoning traps |
-| `"Diagnose my reasoning errors"` | Error trace with pattern detection + code block |
-| `"Show me my score diagnosis"` | Domain accuracy metrics with point opportunities |
-| `"What are common SAT reasoning traps?"` | Callout stack with 4 color-coded traps |
-| `@content:sat-study-plan-timeline` | Personalized 8-week plan + formula flashcards |
-| `@content:sat-test-day-checklist` | Digital SAT test-day execution checklist |
+| `"Show me the Digital SAT adaptive structure"` | **Concept map** — Module 1 → adaptive gate → Module 2 |
+| `"Where am I losing points in R&W?"` | **Comparison table** + **metric strip** |
+| `"Show me SAT strategy flashcards"` | **Flashcard deck** with reasoning traps |
+| `"Diagnose my reasoning errors"` | **Debug trace** + **code block** with error table |
+| `"Show me my score diagnosis"` | **Metric strip** — domain accuracy with point opportunities |
+| `"What are common SAT reasoning traps?"` | **Callout stack** — 4 color-coded traps |
+| `@content:sat-study-plan-timeline` | **Timeline** + **flashcard deck** — personalized 8-week plan |
+| `@content:sat-test-day-checklist` | **Checklist** — Digital SAT test-day execution plan |
 
 ---
 
@@ -135,19 +137,20 @@ Paste these directly into chat to guarantee rich content output:
 | Beat | Content Type | How It Appears |
 |---|---|---|
 | 4 | **Comparison Table + Metric Strip** | Auto-loaded on entering Reading & Writing |
-| 5 | **Skill Tree Graph** | Visible in side panel during branching |
-| 6a | **Flashcard Deck** | Triggered by chat message |
-| 6b | **Callout Stack** | Auto-loaded when English Conventions unlocks |
+| 4 | **Skill Tree Graph** (4 colored nodes) | Visible when switching to Skill Tree tab |
+| 5 | **New branch node in graph** | Created by Explore This |
+| 6a | **Flashcard Deck** (interactive flip) | Triggered by chat message |
+| 6b | **Callout Stack** (4 colors) | Auto-loaded on entering English Conventions |
 
-Additional types available via fallback prompts: **Concept Map**, **Timeline**, **Debug Trace + Code Block**, **Checklist**.
+**5 content block types + skill tree graph shown in main flow.** Additional types (concept map, timeline, debug trace + code, checklist) available via fallback prompts.
 
 ---
 
 ## Key One-Liners (Memorize These)
 
-- *"It shows you where your 220-point gap lives and front-loads the highest-ROI domain."*
-- *"These are not definitions — they teach reasoning PROCESSES that a tutor would teach."*
+- *"Structured, visual content — not just chat text."*
+- *"Every skill surfaces a different type of content — tables, flashcards, callouts, traces, timelines."*
 - *"The skill tree mirrors the real Digital SAT: parallel sections, domain convergence, adaptive strategy."*
 - *"Side explorations keep your main thread clean while you go deep on any concept."*
-- *"Every skill surfaces different structured content — tables, flashcards, callouts, traces, timelines."*
-- *"English Conventions unlocks next because that is where the hidden points are."*
+- *"English Conventions unlocks next because that is where 60 hidden points are."*
+- *"Anti-patterns in red, warnings in amber, tips in green, insights in blue."*

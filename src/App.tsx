@@ -721,13 +721,111 @@ function branchPromptProfile(intent: BranchIntent): string {
   return 'general-subagent';
 }
 
+/* ── Skill-specific topic introductions for richer chat display ── */
+const SAT_TOPIC_INTROS: Record<string, string> = {
+  'Reading & Writing': `Welcome to Reading & Writing — the foundation of your Digital SAT verbal score.
+
+This skill covers four domains:
+- Craft & Structure: identifying author purpose, analyzing word choice
+- Information & Ideas: comprehension, inference, evidence-based reasoning
+- Expression of Ideas: revising text for clarity and coherence
+- Standard English Conventions: grammar, punctuation, sentence structure
+
+Your score diagnosis shows R&W at 560 (target: 680). The biggest opportunity is in Standard English Conventions — roughly 60 points on the table.
+
+Check the side panel for your domain breakdown. You can select any text in my responses and click "Explore This" to branch into deeper explorations.`,
+
+  'Algebra & Functions': `Welcome to Algebra & Functions — the most-tested Math domain on the Digital SAT.
+
+This skill covers:
+- Linear equations and inequalities
+- Systems of equations (substitution and elimination)
+- Functions and their graphs
+- Interpreting linear models in context
+
+Your Math score is 620 (target: 720). Algebra questions make up 13-15 of the 44 Math questions — getting these right is the fastest path to closing your gap.
+
+The side panel shows your score diagnosis by domain. Select any part of my responses to explore a concept further.`,
+
+  'English Conventions': `Welcome to English Conventions — the highest-ROI domain in your R&W section.
+
+This skill focuses on:
+- Subject-verb agreement (especially across non-essential clauses)
+- Comma, semicolon, and colon usage rules
+- Pronoun clarity and agreement
+- Sentence boundaries and fragments
+
+Your accuracy here is 52% — that means roughly 60 points are available just by learning a handful of grammar patterns. Four comma rules alone cover about 80% of convention questions.
+
+Check the side panel for the most common reasoning traps in this domain.`,
+
+  'Advanced Math': `Welcome to Advanced Math — quadratics, nonlinear functions, and data analysis on the Digital SAT.
+
+This skill covers:
+- Quadratic equations and factoring
+- Polynomial and rational functions
+- Data analysis and problem-solving
+- Geometry and trigonometry essentials
+
+Your accuracy here is 65% — roughly 50 points available. The most common error pattern is sign mistakes in factoring, which you can catch by always back-substituting your answer.
+
+The Desmos graphing calculator is available for every Math question. The side panel shows your error analysis.`,
+
+  'Adaptive Test Strategy': `Welcome to Adaptive Test Strategy — the key to unlocking the top score range.
+
+The Digital SAT uses Multistage Adaptive Testing:
+- Each section has two modules (Module 1 and Module 2)
+- Your Module 1 performance determines Module 2 difficulty
+- Harder Module 2 = higher score ceiling
+- Easy Module 2 caps your score around 1200
+
+This means accuracy on Module 1 matters more than speed. Every correct answer in Module 1 is worth more than rushing to finish.
+
+Check the side panel for the adaptive structure diagram showing how module routing works.`,
+
+  'Full-Length Practice': `Welcome to Full-Length Practice — timed adaptive simulations with score projection.
+
+This skill focuses on:
+- Completing full R&W sections (54 questions, 64 minutes)
+- Completing full Math sections (44 questions, 70 minutes)
+- Pacing strategy: R&W = 71 sec/question, Math = 95 sec/question
+- Post-test error classification and score projection
+
+Based on your prep so far, your projected score range is 1320-1380. Two more full-length practices with focused review should close the remaining gap to your 1400 target.
+
+The side panel shows your personalized study timeline.`,
+
+  'Score Maximization & Test Day': `Welcome to Score Maximization & Test Day — your final preparation before the real test.
+
+This skill covers:
+- Pacing optimization for each section
+- Desmos calculator strategy (when to use vs. when to skip)
+- Module 1 execution plan (accuracy over speed)
+- Test-day logistics (Bluebook app, device prep, timing)
+
+At this stage, your score gains come from execution, not content knowledge. The goal is to eliminate careless errors and optimize your time allocation.
+
+Check the side panel for your test-day execution checklist.`,
+};
+
 function topicIntroFor(title: string, description: string): string {
-  return `Let's dive into **${title}** — ${description}\n\nUse Ask, Explain, Compare, and Practice sessions to build mastery. I will also propose review tasks when this node needs reinforcement.`;
+  return SAT_TOPIC_INTROS[title]
+    ?? `Welcome to ${title} — ${description}\n\nThis skill covers the key concepts you need to master. Use the side panel to explore structured content, and select any text in my responses to branch into deeper explorations.`;
 }
 
 function assistantFallbackReplyFor(kind: SessionKind, message: string, intent?: BranchIntent): string {
   if (kind === 'topic') {
-    return `Good question about "${message}". This is an important area to master — many students underestimate it.\n\nThe key is to focus on the underlying reasoning pattern rather than memorizing answers. Start by identifying what the question is really asking, then systematically eliminate options that don't have direct evidence supporting them.\n\nWould you like me to break this down further, or try a practice drill?`;
+    return `That is a great question.
+
+"${message}" — this is one of the most common areas where students lose points. The key insight is that structured learning tests reasoning processes, not memorization. Every correct answer is either directly supported by the source material or solvable with the given information.
+
+Here is how to approach it:
+1. Read the question carefully — identify exactly what it is asking
+2. Predict your answer before looking at the choices
+3. Eliminate any option that lacks direct evidence
+4. If you cannot point to a specific source that supports an answer, it is likely a trap
+
+Try selecting part of this response to explore a specific concept further, or ask me to run a practice drill.`;
   }
   if (kind === 'branch' && intent === 'ask') {
     return `Great follow-up. Starting from "${message}", I can trace prerequisites and examples step-by-step.`;
@@ -1815,7 +1913,7 @@ function App() {
       activateSession(topicSessionId);
     }
 
-    setCanvasView('skill-tree');
+    setCanvasView('content');
     setCanvasOpen(true);
   };
 
