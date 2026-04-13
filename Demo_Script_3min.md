@@ -91,12 +91,36 @@
 
 ---
 
-## Beat 6 — Content Types & Skill Completion (2:00–2:30)
+## Beat 6 — Creator-Defined Slash Commands (2:00–2:15)
 
-**Action:** Click **"Reading & Writing"** in the skill bar to return. Type *"Show me SAT strategy flashcards"*. The **Content panel** updates with an **interactive flashcard deck**.
+**Action:** Click **"Reading & Writing"** in the skill bar to return. Click the chat input and type **`/`**. The **command autocomplete popover** appears above the input showing available commands.
 
 **Script:**
-> "Back in the main workspace. I ask for strategy cards — and the content panel updates with an interactive flashcard deck. But these aren't just flip cards. Watch — this first one is a classic flip card. Tap to reveal the answer."
+> "Besides natural language, course creators define slash commands — structured actions tailored to their domain. I type slash and see the commands this SAT package ships with."
+
+**Action:** Point to the popover showing the three commands: `/sat-drill`, `/strategy-cards`, `/diagnose`. Click **`/diagnose · Error Diagnosis`**.
+
+**Script:**
+> "Three commands: drill generation, strategy cards, and error diagnosis. Each one is creator-defined — different courses ship different commands. Let me run a diagnosis."
+
+**Action:** The **command input dialog** opens. Type **"Algebra"** in the domain field. Click **"Run Command"**.
+
+**Script:**
+> "It asks for the domain — this is a structured form, not a free-text guess. I pick Algebra and run it."
+
+**Action:** Point to the **command execution card** in chat (collapsible with lightning bolt icon). Point to the **Content panel** which loads an error analysis trace.
+
+**Script:**
+> "The command card shows exactly what was executed. And the content panel loads a reasoning error trace — structured diagnostic output, not a wall of text. Creators control the entire interaction model."
+
+---
+
+## Beat 7 — Content Types & Skill Completion (2:15–2:40)
+
+**Action:** Type *"Show me SAT strategy flashcards"*. The **Content panel** updates with an **interactive flashcard deck**.
+
+**Script:**
+> "Now I ask for strategy cards — and the content panel updates with an interactive flashcard deck. But these aren't just flip cards. Watch — this first one is a classic flip card. Tap to reveal the answer."
 
 **Action:** Click the flashcard to flip it. Then click **Next** to advance to card 2.
 
@@ -115,7 +139,7 @@
 
 ---
 
-## Beat 7 — Inbox & Proactive Recommendations (2:30–2:45)
+## Beat 8 — Inbox & Proactive Recommendations (2:40–2:50)
 
 **Action:** Click the **Inbox button** (bottom-right). The popover opens showing suggested next actions with icons.
 
@@ -126,12 +150,12 @@
 
 ---
 
-## Beat 8 — Close (2:45–3:00)
+## Beat 9 — Close (2:50–3:00)
 
 **Action:** Stay on the current view. Gesture to the full interface.
 
 **Script:**
-> "That is Knovia — structured skill trees, rich visual content, side explorations, intent-aware content matching, and proactive recommendations. One platform. Any subject. Not a chatbot. Not a course player. A structured learning system that adapts to how you think."
+> "That is Knovia — structured skill trees, rich visual content, side explorations, creator-defined commands, intent-aware content matching, and proactive recommendations. One platform. Any subject. Not a chatbot. Not a course player. A structured learning system that adapts to how you think."
 
 ---
 
@@ -160,11 +184,12 @@ Paste these directly into chat to guarantee rich content output:
 | 4 | **Skill Tree Graph** (colored nodes, curved edges) | Visible when switching to Skill Tree tab |
 | 5 | **New branch node in graph** | Created by Explore This |
 | 5 | **Intent resolution message** | System message showing matched content |
-| 6a | **Interactive Flashcard Deck** (flip, fill-blank, MCQ, order) | Triggered by chat message |
-| 6b | **Callout Stack** (4 colors) | Auto-loaded on entering English Conventions |
-| 7 | **Inbox recommendations** (action-typed icons) | Opened via inbox FAB |
+| 6 | **Command execution card + Error Analysis Trace** | Triggered by `/diagnose` slash command |
+| 7a | **Interactive Flashcard Deck** (flip, fill-blank, MCQ, order) | Triggered by chat message |
+| 7b | **Callout Stack** (4 colors) | Auto-loaded on entering English Conventions |
+| 8 | **Inbox recommendations** (action-typed icons) | Opened via inbox FAB |
 
-**6 content block types + skill tree graph + inbox shown in main flow.** Additional types (concept map, timeline, debug trace + code, checklist) available via fallback prompts.
+**7 content block types + skill tree graph + command card + inbox shown in main flow.** Additional types (concept map, timeline, checklist) available via fallback prompts.
 
 ---
 
@@ -178,9 +203,10 @@ Paste these directly into chat to guarantee rich content output:
 | 4 | Dependency-based skill tree — parallel tracks, visual graph, progress bar |
 | 5 | Intent resolution — content matching visible as system message |
 | 5 | Non-linear exploration — "Explore This" creates branch without losing context |
-| 6 | Multi-content-type rendering — interactive flashcards (4 types), callouts, tables, metrics |
-| 6 | Skill progression cascade — complete → unlock dependents |
-| 7 | Proactive AI inbox — contextual recommendations with action types |
+| 6 | Creator-defined slash commands — structured actions with input dialogs |
+| 7 | Multi-content-type rendering — interactive flashcards (4 types), callouts, tables, metrics |
+| 7 | Skill progression cascade — complete → unlock dependents |
+| 8 | Proactive AI inbox — contextual recommendations with action types |
 
 ---
 
@@ -192,5 +218,6 @@ Paste these directly into chat to guarantee rich content output:
 - *"The skill tree is the core: dependencies, parallel tracks, visual graph."*
 - *"Side explorations keep your main thread clean while you go deep."*
 - *"The platform detected the intent and matched it to a content pack."*
+- *"Creators define slash commands — structured actions, not free-text guesses."*
 - *"It doesn't just respond — it recommends. Proactive, not reactive."*
 - *"One platform. Any subject. Structured learning that adapts to how you think."*
