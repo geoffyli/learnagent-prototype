@@ -13,10 +13,16 @@ export interface ComparisonTableBlock {
   rows: Array<{ aspect: string; left: string; right: string }>;
 }
 
+export type FlashcardItem =
+  | { id: string; kind: 'flip'; question: string; answer: string }
+  | { id: string; kind: 'fill-blank'; prompt: string; blank: string; answer: string }
+  | { id: string; kind: 'mcq'; question: string; options: string[]; correctIndex: number }
+  | { id: string; kind: 'order'; instruction: string; items: string[]; correctOrder: number[] };
+
 export interface FlashcardDeckBlock {
   type: 'flashcard-deck';
   topic: string;
-  cards: Array<{ id: string; question: string; answer: string }>;
+  cards: FlashcardItem[];
 }
 
 export interface ConceptMapBlock {

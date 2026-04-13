@@ -228,11 +228,13 @@ ORDER BY week;`,
       cards: [
         {
           id: 'fc1',
+          kind: 'flip',
           question: 'When should you use a LEFT JOIN instead of an INNER JOIN?',
           answer: 'Use LEFT JOIN when you need to preserve all rows from the left table, even when matches are missing on the right.',
         },
         {
           id: 'fc2',
+          kind: 'flip',
           question: 'What makes a dashboard insight actionable?',
           answer: 'It ties a metric movement to a likely cause and recommends a specific next action.',
         },
@@ -240,7 +242,7 @@ ORDER BY week;`,
     },
   ],
 
-  /* ── SAT Exam Prep Packs (Digital SAT 2024+) ────────────────── */
+  /* ── SAT Exam Prep Packs (Digital SAT) ────────────────── */
 
   'sat-skill-dependency-map': [
     {
@@ -296,23 +298,41 @@ ORDER BY week;`,
       cards: [
         {
           id: 'v1',
+          kind: 'flip',
           question: 'A question asks: "Which choice best states the main purpose of the passage?" You are torn between (A) "to describe a new method" and (C) "to argue for a new method." How do you decide?',
           answer: '"Describe" = neutral presentation. "Argue" = the author takes a position. Look for opinion language: "should," "must," "critical." If the passage only explains HOW the method works without advocating FOR it, the answer is "describe." This PURPOSE vs. TOPIC trap is the #1 reason students miss Craft & Structure questions.',
         },
         {
           id: 'v2',
-          question: 'You see a question with a graph and a short passage. The passage says sales "increased steadily." The graph shows sales went up overall but dipped in Q3. Which matters more — the text or the graph?',
-          answer: 'On the Digital SAT, when text and data conflict, the GRAPH wins for data questions. But if the question asks about the author\'s CLAIM (not the actual data), the passage text is what matters. Key: read the question stem — "Based on the graph" vs. "According to the author" tells you which source to trust.',
+          kind: 'fill-blank',
+          prompt: 'Grammar trap: "The team, which included researchers from three universities, ____ published their findings." The subject is "team" (singular). Remove the non-essential clause to check.',
+          blank: '____',
+          answer: 'has',
         },
         {
           id: 'v3',
-          question: 'Grammar question: "The team, which included researchers from three universities, [blank] published their findings." Options: (A) have (B) has (C) having (D) had. What is the answer?',
-          answer: 'Answer: (B) "has." The subject is "team" (singular), not "researchers." The clause "which included researchers from three universities" is non-essential — remove it and you get "The team has published." This is the #1 Digital SAT grammar trap: a long clause between subject and verb tricks you into matching the wrong noun.',
+          kind: 'mcq',
+          question: 'A passage says sales "increased steadily." The accompanying graph shows sales went up overall but dipped in Q3. A question asks: "Based on the data, which statement is accurate?" What source should you trust?',
+          options: [
+            'Always trust the passage text over the graph',
+            'The graph wins for data questions — it shows the actual numbers',
+            'Neither — look for a third source in the passage',
+            'Pick whichever source supports the most positive interpretation',
+          ],
+          correctIndex: 1,
         },
         {
           id: 'v4',
-          question: 'When should you use the Desmos graphing calculator on the Digital SAT, and when is it a trap?',
-          answer: 'USE Desmos for: (1) graphing intersections of two equations, (2) checking algebra by plugging in answer choices, (3) visualizing quadratic vertex/roots. AVOID for: (1) simple arithmetic — typing is slower than mental math, (2) questions asking for algebraic form — calculator gives values, not expressions. Rule: if answers are numbers, use Desmos. If answers are expressions, work by hand.',
+          kind: 'order',
+          instruction: 'Put these Desmos calculator strategies in order from MOST useful to LEAST useful on the Digital SAT:',
+          items: [
+            'Graph intersections of two equations to find solutions',
+            'Check algebra by plugging in answer choices',
+            'Visualize quadratic vertex and roots',
+            'Do simple arithmetic like 3 × 17',
+            'Solve for algebraic expressions (not values)',
+          ],
+          correctOrder: [0, 1, 2, 3, 4],
         },
       ],
     },
@@ -335,11 +355,13 @@ ORDER BY week;`,
       cards: [
         {
           id: 'f1',
+          kind: 'flip',
           question: 'The Digital SAT gives you a reference sheet. Which formulas are NOT on it that you must memorize?',
           answer: 'Not on the reference sheet: (1) Slope: m = (y₂-y₁)/(x₂-x₁), (2) Quadratic formula: x = (-b ± √(b²-4ac)) / 2a, (3) Standard form: Ax + By = C, (4) Vertex form: y = a(x-h)² + k. The reference sheet only covers area/volume of shapes and special right triangles.',
         },
         {
           id: 'f2',
+          kind: 'flip',
           question: 'What is the most efficient strategy for Digital SAT Math questions where all answer choices are numbers?',
           answer: 'Backsolve: plug each answer choice into the equation. Start with (B) or (C) — the middle value. On the Digital SAT, choices are often ordered, so if (C) is too large, eliminate (C) and (D). This turns algebra into arithmetic and works on ~30% of Math questions.',
         },

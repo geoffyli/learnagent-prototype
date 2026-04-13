@@ -1,6 +1,6 @@
-import { ChangeEvent, SetStateAction, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, CheckCircle2, Circle, CircleDot, Inbox, Lock, Map as MapIcon, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, CheckCircle2, Circle, CircleDot, FileText, Inbox, Lock, Map as MapIcon, RotateCcw, Sparkles, X, Zap } from 'lucide-react';
 import SessionCanvas from './components/SessionCanvas';
 import SessionChat from './components/SessionChat';
 import RichContentPanel from './components/RichContentPanel';
@@ -513,7 +513,7 @@ const COURSE_PACKAGES: CoursePackageConfig[] = [
   {
     id: 'pkg-sat-exam-prep',
     title: 'Digital SAT Prep Sprint',
-    subtitle: 'Adaptive strategy + reasoning mastery for the 2024+ Digital SAT',
+    subtitle: 'Adaptive strategy + reasoning mastery for the Digital SAT',
     defaultSessionTitle: 'Digital SAT Prep Session',
     intakeTitle: 'Personalize your Digital SAT prep plan',
     intakeDescription:
@@ -591,44 +591,123 @@ const DEFAULT_COURSE_PACKAGE_ID = 'pkg-sat-exam-prep';
 interface SeedBranch {
   intent: BranchIntent;
   title: string;
+  /** Pre-completed for visual richness in demo */
+  completed?: boolean;
+  /** Nested sub-branches for multi-layer tree depth */
+  children?: SeedBranch[];
 }
 
 const SKILL_SEED_BRANCHES: Record<string, SeedBranch[]> = {
   'Reading & Writing': [
-    { intent: 'explain', title: 'Key R&W Concepts' },
-    { intent: 'ask', title: 'Evidence-Based Questions' },
+    {
+      intent: 'explain', title: 'Key R&W Concepts', completed: true,
+      children: [
+        { intent: 'ask', title: 'Craft & Structure Deep Dive' },
+        { intent: 'practice', title: 'Purpose vs. Topic Drill', completed: true },
+      ],
+    },
+    {
+      intent: 'ask', title: 'Evidence-Based Questions',
+      children: [
+        { intent: 'explain', title: 'Eliminating Trap Answers' },
+      ],
+    },
     { intent: 'practice', title: 'Passage Analysis Drill' },
+    { intent: 'compare', title: 'Module 1 vs. Module 2 Strategy' },
+    { intent: 'debug', title: 'Common Wrong Answer Patterns' },
+    { intent: 'plan', title: 'Weekly R&W Study Schedule' },
   ],
   'Algebra & Functions': [
-    { intent: 'explain', title: 'Linear Systems Overview' },
-    { intent: 'ask', title: 'Word Problem Strategy' },
+    {
+      intent: 'explain', title: 'Linear Systems Overview', completed: true,
+      children: [
+        { intent: 'practice', title: 'Systems of Equations Drill' },
+        { intent: 'ask', title: 'When to Substitute vs. Eliminate' },
+      ],
+    },
+    {
+      intent: 'ask', title: 'Word Problem Strategy',
+      children: [
+        { intent: 'explain', title: 'Translating Words to Equations' },
+      ],
+    },
     { intent: 'practice', title: 'Equation Drill' },
+    { intent: 'compare', title: 'Linear vs. Nonlinear Functions' },
+    { intent: 'debug', title: 'Sign Error Diagnosis' },
   ],
   'English Conventions': [
-    { intent: 'explain', title: 'Grammar Rules That Matter' },
-    { intent: 'ask', title: 'Subject-Verb Agreement' },
+    {
+      intent: 'explain', title: 'Grammar Rules That Matter', completed: true,
+      children: [
+        { intent: 'ask', title: 'Comma Splice Recognition' },
+        { intent: 'practice', title: 'Punctuation Quick-Fire', completed: true },
+      ],
+    },
+    {
+      intent: 'ask', title: 'Subject-Verb Agreement',
+      children: [
+        { intent: 'explain', title: 'Non-Essential Clause Trick' },
+      ],
+    },
     { intent: 'practice', title: 'Conventions Drill' },
     { intent: 'compare', title: 'Comma vs. Semicolon' },
+    { intent: 'debug', title: 'Modifier Placement Errors' },
+    { intent: 'plan', title: 'Conventions Mastery Path' },
   ],
   'Advanced Math': [
-    { intent: 'explain', title: 'Quadratics & Polynomials' },
-    { intent: 'ask', title: 'Desmos Calculator Tips' },
+    {
+      intent: 'explain', title: 'Quadratics & Polynomials',
+      children: [
+        { intent: 'practice', title: 'Factoring Speed Drill' },
+        { intent: 'ask', title: 'Vertex Form vs. Standard Form' },
+      ],
+    },
+    {
+      intent: 'ask', title: 'Desmos Calculator Tips',
+      children: [
+        { intent: 'practice', title: 'Desmos Graphing Shortcuts' },
+      ],
+    },
     { intent: 'practice', title: 'Advanced Problem Set' },
+    { intent: 'compare', title: 'Algebra vs. Geometry Strategy' },
+    { intent: 'debug', title: 'Data Analysis Pitfalls' },
   ],
   'Adaptive Test Strategy': [
-    { intent: 'explain', title: 'How Module 1 → Module 2 Works' },
+    {
+      intent: 'explain', title: 'How Module 1 → Module 2 Works',
+      children: [
+        { intent: 'ask', title: 'Difficulty Scaling Mechanics' },
+        { intent: 'compare', title: 'Easy M1 vs. Hard M1 Outcomes' },
+      ],
+    },
     { intent: 'ask', title: 'When to Slow Down on M1' },
     { intent: 'compare', title: 'Easy M2 vs. Hard M2 Scoring' },
+    { intent: 'practice', title: 'Adaptive Pacing Simulation' },
+    { intent: 'plan', title: 'Module Strategy Checklist' },
   ],
   'Full-Length Practice': [
-    { intent: 'explain', title: 'Pacing Strategy' },
+    {
+      intent: 'explain', title: 'Pacing Strategy',
+      children: [
+        { intent: 'practice', title: 'Time-Per-Question Drill' },
+      ],
+    },
     { intent: 'practice', title: 'Timed Section Drill' },
     { intent: 'ask', title: 'Score Projection' },
+    { intent: 'compare', title: 'R&W vs. Math Time Allocation' },
+    { intent: 'debug', title: 'Error Classification Review' },
   ],
   'Score Maximization & Test Day': [
-    { intent: 'explain', title: 'Test-Day Execution Plan' },
+    {
+      intent: 'explain', title: 'Test-Day Execution Plan',
+      children: [
+        { intent: 'ask', title: 'Break Strategy & Focus Reset' },
+      ],
+    },
     { intent: 'ask', title: 'Desmos vs. Mental Math' },
     { intent: 'practice', title: 'Final Review Drill' },
+    { intent: 'compare', title: 'Section Order Strategy' },
+    { intent: 'plan', title: 'Last-Week Prep Checklist' },
   ],
 };
 
@@ -891,7 +970,7 @@ function SkillProgressBar({
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white/80 px-4 py-2.5">
+    <div className="flex items-center gap-2 overflow-x-auto border-b border-[#e2e8f0] bg-white/80 px-4 py-2.5">
       {skillNodes.map((skill) => {
         const isActive = skill.id === activeSkillNodeId;
         const isLocked = skill.status === 'locked';
@@ -907,16 +986,16 @@ function SkillProgressBar({
             whileTap={reducedMotion || isLocked ? undefined : { scale: 0.97 }}
             className={`group relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
               isActive
-                ? 'ring-2 ring-blue-400 ring-offset-1'
+                ? 'border-b-2 border-b-[#0f172a]'
                 : ''
             } ${
               isCompleted
-                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                ? 'border border-[#e2e8f0] bg-white text-[#16a34a]'
                 : isInProgress
-                  ? 'border border-blue-200 bg-blue-50 text-blue-700'
+                  ? 'border border-[#e2e8f0] bg-white text-[#0f172a]'
                   : isLocked
-                    ? 'border border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                    : 'border border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                    ? 'border border-[#f1f5f9] bg-[#f8fafc] text-[#94a3b8] cursor-not-allowed'
+                    : 'border border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#2563eb]'
             }`}
           >
             {isCompleted ? (
@@ -933,10 +1012,10 @@ function SkillProgressBar({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompleteSkill(skill.id); }}
-                className="ml-1 rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-blue-700"
+                className="ml-1 rounded-full border border-[#e2e8f0] bg-white px-2 py-0.5 text-[11px] font-medium text-[#0f172a] hover:text-[#2563eb]"
                 title="Mark as complete"
               >
-                ✓ Complete
+                Complete
               </button>
             )}
           </motion.button>
@@ -972,14 +1051,14 @@ function CanvasSlideOver({
   const hasContent = blocks.length > 0;
   return (
     <div
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm"
+      className="flex h-full flex-col overflow-hidden rounded-[22px] border border-[#e2e8f0] bg-white/90 backdrop-blur-sm"
     >
-      <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-3 py-2">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onSwitchView('skill-tree')}
-            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'bg-blue-50 text-blue-700' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'skill-tree' ? 'text-[#0f172a] font-medium' : 'text-[#64748b] hover:text-[#0f172a]'}`}
           >
             Skill Tree
           </button>
@@ -987,7 +1066,7 @@ function CanvasSlideOver({
             <button
               type="button"
               onClick={() => onSwitchView('content')}
-              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition ${view === 'content' ? 'text-[#0f172a] font-medium' : 'text-[#64748b] hover:text-[#0f172a]'}`}
             >
               Content
             </button>
@@ -996,7 +1075,7 @@ function CanvasSlideOver({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          className="rounded-lg p-1 text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
           title="Close panel"
         >
           <X className="h-4 w-4" />
@@ -1095,11 +1174,26 @@ function App() {
   const [previewPackageId, setPreviewPackageId] = useState<string | null>(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [canvasView, setCanvasView] = useState<'content' | 'skill-tree'>('content');
+  const [isTyping, setIsTyping] = useState(false);
   const [planningTurnIndex, setPlanningTurnIndex] = useState(0);
   const [planningScript, setPlanningScript] = useState<PlanningTurn[]>([]);
   const planningTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [globalInbox, setGlobalInbox] = useState<GlobalInboxItem[]>([]);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxPulse, setInboxPulse] = useState(false);
+  const inboxPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerInboxPulse = () => {
+    if (inboxPulseTimerRef.current) clearTimeout(inboxPulseTimerRef.current);
+    setInboxPulse(true);
+    inboxPulseTimerRef.current = setTimeout(() => setInboxPulse(false), 600);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (inboxPulseTimerRef.current) clearTimeout(inboxPulseTimerRef.current);
+    };
+  }, []);
 
   const allCoursePackages = useMemo(
     () => [...COURSE_PACKAGES, ...publishedPackages],
@@ -1250,10 +1344,21 @@ function App() {
     }).filter((workspace) => workspace.origin === 'custom');
   }, [allCoursePackages, workspaces]);
 
+  const packageDemoMeta: Record<string, { domain: string; stats: string; accentColor: string }> = {
+    'pkg-sat-exam-prep': { domain: 'Test Prep', stats: '7 skills \u00b7 8 weeks \u00b7 4.9\u2605', accentColor: 'blue' },
+    'pkg-data-analyst-job-sprint': { domain: 'Career', stats: '6 skills \u00b7 10 weeks \u00b7 4.8\u2605', accentColor: 'violet' },
+    'pkg-custom-self-directed': { domain: 'Custom', stats: 'Flexible \u00b7 Self-paced', accentColor: 'gray' },
+  };
+
   const coursePackageOptions = useMemo(
     () => allCoursePackages
       .filter((item) => item.discoverable !== false)
-      .map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle })),
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        subtitle: item.subtitle,
+        ...packageDemoMeta[item.id],
+      })),
     [allCoursePackages],
   );
 
@@ -1426,10 +1531,10 @@ function App() {
     const sessionBlocks = richBlocksBySession[sessionId] ?? EMPTY_RICH_BLOCKS;
     if (sessionBlocks.length > 0) {
       setCanvasView('content');
-      setCanvasOpen(true);
     } else {
-      setCanvasOpen(false);
+      setCanvasView('skill-tree');
     }
+    setCanvasOpen(true);
   };
 
   const appendMessage = (
@@ -1603,6 +1708,7 @@ function App() {
     // Pre-seed global inbox with proactive items
     const initialInboxItems = generateInitialInboxItems(skillNodes, nextTimeline());
     setGlobalInbox((prev) => dedupeInboxItems(prev, initialInboxItems));
+    if (initialInboxItems.length > 0) triggerInboxPulse();
 
     // Default to Skill Map view so the tree is visible immediately
     setCanvasView('skill-tree');
@@ -1729,37 +1835,52 @@ function App() {
       topicTitle: activeNode.kind === 'topic' ? activeNode.title : undefined,
     });
 
-    const assistantText = contentResult.source === 'none'
-      ? assistantFallbackReplyFor(activeNode.kind, options?.displayMessage ?? rawMessage, activeNode.intent)
-      : contentResult.text;
-    appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
+    // Show typing indicator briefly before assistant reply
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
 
-    // Generate global inbox items from interaction context
-    const activeSessionRecord = sessions[activeSessionId];
-    const msgCount = activeSessionRecord ? activeSessionRecord.messages.length : 0;
-    const inboxItems = generateInteractionInboxItems({
-      skillNodes: mainSkillNodes,
-      activeSkillNodeId,
-      messageCount: msgCount,
-      userMessage: rawMessage,
-      now: nextTimeline(),
-    });
-    if (inboxItems.length > 0) {
-      setGlobalInbox((prev) => dedupeInboxItems(prev, inboxItems));
-    }
+      if (contentResult.matchedLabel) {
+        appendMessage(activeSessionId, {
+          role: 'system',
+          content: `\u2726 Content matched: ${contentResult.matchedLabel}`,
+        });
+      }
 
-    if (contentResult.rich) {
-      setSessionRichBlocks(activeSessionId, contentResult.rich);
-      setCanvasView('content');
-      setCanvasOpen(true);
-    }
+      const assistantText = contentResult.source === 'none'
+        ? assistantFallbackReplyFor(activeNode.kind, options?.displayMessage ?? rawMessage, activeNode.intent)
+        : contentResult.text;
+      appendMessage(activeSessionId, { role: 'assistant', content: assistantText });
+
+      // Generate global inbox items from interaction context
+      const activeSessionRecord = sessions[activeSessionId];
+      const msgCount = activeSessionRecord ? activeSessionRecord.messages.length : 0;
+      const inboxItems = generateInteractionInboxItems({
+        skillNodes: mainSkillNodes,
+        activeSkillNodeId,
+        messageCount: msgCount,
+        userMessage: rawMessage,
+        now: nextTimeline(),
+      });
+      if (inboxItems.length > 0) {
+        setGlobalInbox((prev) => dedupeInboxItems(prev, inboxItems));
+        triggerInboxPulse();
+      }
+
+      if (contentResult.rich) {
+        setSessionRichBlocks(activeSessionId, contentResult.rich);
+        setCanvasView('content');
+        setCanvasOpen(true);
+      }
+    }, 500);
   };
 
   const handleCreateBranch = (kind: 'ask' | 'explain', selectedText: string) => {
     if (!activeNode) {
       return;
     }
-    const label = selectedText.slice(0, 42);
+    const raw = selectedText.slice(0, 48);
+    const label = raw.length < selectedText.length ? raw.replace(/\s+\S*$/, '…') : raw;
     const title = `${kind === 'ask' ? 'Ask' : 'Explain'} • ${label}`;
     const promptProfile = branchPromptProfile(kind);
     const intro =
@@ -1889,29 +2010,44 @@ function App() {
       }
     }
 
-    // Pre-seed branch nodes for a rich canvas display
+    // Pre-seed branch nodes for a rich canvas display (supports nested children)
     const seedBranches = SKILL_SEED_BRANCHES[skillNode.title];
     if (seedBranches && topicSessionId) {
-      for (const branch of seedBranches) {
-        createSubSession({
-          parentId: topicSessionId,
-          kind: 'branch',
-          intent: branch.intent,
-          source: 'agent-suggestion',
-          title: branch.title,
-          promptProfile: branchPromptProfile(branch.intent),
-          contextNote: `${branch.title} — pre-seeded exploration for ${skillNode.title}`,
-          seedMessages: [
-            {
-              id: nextId('msg'),
-              role: 'assistant',
-              content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
-              timestamp: createTimestamp(),
-            },
-          ],
-          skillNodeId,
-        });
-      }
+      const seedRecursive = (branches: SeedBranch[], parentId: string) => {
+        for (const branch of branches) {
+          const branchId = createSubSession({
+            parentId,
+            kind: 'branch',
+            intent: branch.intent,
+            source: 'agent-suggestion',
+            title: branch.title,
+            promptProfile: branchPromptProfile(branch.intent),
+            contextNote: `${branch.title} — pre-seeded exploration for ${skillNode.title}`,
+            seedMessages: [
+              {
+                id: nextId('msg'),
+                role: 'assistant',
+                content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
+                timestamp: createTimestamp(),
+              },
+            ],
+            skillNodeId,
+          });
+
+          // Mark completed branches for visual richness
+          if (branch.completed && branchId) {
+            setNodes((prev) =>
+              prev.map((n) => (n.id === branchId ? { ...n, status: 'completed' as const } : n)),
+            );
+          }
+
+          // Recurse into children for multi-layer depth
+          if (branch.children && branchId) {
+            seedRecursive(branch.children, branchId);
+          }
+        }
+      };
+      seedRecursive(seedBranches, topicSessionId);
       // Navigate back to the topic session (createSubSession activates the last branch)
       activateSession(topicSessionId);
     }
@@ -1951,6 +2087,7 @@ function App() {
     if (completedSkill) {
       const completionItems = generateSkillCompletionInboxItems(completedSkill, nextSkillNodes, nextTimeline());
       setGlobalInbox((prev) => dedupeInboxItems(prev, completionItems));
+      if (completionItems.length > 0) triggerInboxPulse();
     }
 
     // Auto-create sessions for newly unlocked skills so they look populated immediately
@@ -1985,29 +2122,40 @@ function App() {
         if (topicBlocks) setSessionRichBlocks(topicSessionId, topicBlocks);
       }
 
-      // Pre-seed branches
+      // Pre-seed branches (with nested children support)
       const seedBranches = SKILL_SEED_BRANCHES[unlocked.title];
       if (seedBranches && topicSessionId) {
-        for (const branch of seedBranches) {
-          createSubSession({
-            parentId: topicSessionId,
-            kind: 'branch',
-            intent: branch.intent,
-            source: 'agent-suggestion',
-            title: branch.title,
-            promptProfile: branchPromptProfile(branch.intent),
-            contextNote: `${branch.title} — pre-seeded exploration for ${unlocked.title}`,
-            seedMessages: [
-              {
-                id: nextId('msg'),
-                role: 'assistant',
-                content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
-                timestamp: createTimestamp(),
-              },
-            ],
-            skillNodeId: unlocked.id,
-          });
-        }
+        const seedRecursive = (branches: SeedBranch[], parentId: string) => {
+          for (const branch of branches) {
+            const branchId = createSubSession({
+              parentId,
+              kind: 'branch',
+              intent: branch.intent,
+              source: 'agent-suggestion',
+              title: branch.title,
+              promptProfile: branchPromptProfile(branch.intent),
+              contextNote: `${branch.title} — pre-seeded exploration for ${unlocked.title}`,
+              seedMessages: [
+                {
+                  id: nextId('msg'),
+                  role: 'assistant',
+                  content: `Ready to explore **${branch.title}**. Ask a question or dive in.`,
+                  timestamp: createTimestamp(),
+                },
+              ],
+              skillNodeId: unlocked.id,
+            });
+            if (branch.completed && branchId) {
+              setNodes((prev) =>
+                prev.map((n) => (n.id === branchId ? { ...n, status: 'completed' as const } : n)),
+              );
+            }
+            if (branch.children && branchId) {
+              seedRecursive(branch.children, branchId);
+            }
+          }
+        };
+        seedRecursive(seedBranches, topicSessionId);
       }
     }
 
@@ -2031,360 +2179,441 @@ function App() {
     ? mainSkillNodes.find((node) => node.id === activeSkillNodeId)?.status ?? null
     : null;
 
-  if (!activeWorkspaceId || !activeWorkspace || !activeNode || !activeSession) {
-    if (creatorStudioOpen) {
-      return (
-        <CreatorBuilderPage
-          onBack={() => setCreatorStudioOpen(false)}
-          onPublish={handlePublishCreatorPackage}
-        />
-      );
-    }
+  // Compute active view key for page transitions
+  const hasActiveSession = Boolean(activeWorkspaceId && activeWorkspace && activeNode && activeSession);
+  const previewPkg = previewPackageId ? allCoursePackages.find((p) => p.id === previewPackageId) : undefined;
+  const previewCommunity = previewPackageId ? COURSE_COMMUNITY[previewPackageId] : undefined;
+  const canShowCourseDetail = Boolean(previewPkg && previewCommunity);
 
-    if (previewPackageId) {
-      const previewPkg = allCoursePackages.find((p) => p.id === previewPackageId);
-      const community = COURSE_COMMUNITY[previewPackageId];
-      if (previewPkg && community) {
-        return (
+  type ViewKey = 'creator' | 'course-detail' | 'welcome' | 'setup' | 'learning';
+  let viewKey: ViewKey;
+  if (!hasActiveSession && creatorStudioOpen) {
+    viewKey = 'creator';
+  } else if (!hasActiveSession && previewPackageId && canShowCourseDetail) {
+    viewKey = 'course-detail';
+  } else if (!hasActiveSession) {
+    viewKey = 'welcome';
+  } else if (mainPhase === 'setup') {
+    viewKey = 'setup';
+  } else {
+    viewKey = 'learning';
+  }
+
+  const pageTransitionY = reducedMotion ? 0 : 12;
+  const pageTransitionExitY = reducedMotion ? 0 : -8;
+  const pageTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
+
+  return (
+    <AnimatePresence mode="wait">
+      {viewKey === 'creator' && (
+        <motion.div
+          key="creator"
+          initial={{ opacity: 0, y: pageTransitionY }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: pageTransitionExitY }}
+          transition={pageTransition}
+        >
+          <CreatorBuilderPage
+            onBack={() => setCreatorStudioOpen(false)}
+            onPublish={handlePublishCreatorPackage}
+          />
+        </motion.div>
+      )}
+
+      {viewKey === 'course-detail' && previewPkg && previewCommunity && previewPackageId && (
+        <motion.div
+          key="course-detail"
+          initial={{ opacity: 0, y: pageTransitionY }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: pageTransitionExitY }}
+          transition={pageTransition}
+        >
           <CourseDetailPage
             pkg={previewPkg}
-            community={community}
+            community={previewCommunity}
             onStartCourse={() => {
               setPreviewPackageId(null);
               handleStartPackageSession(previewPackageId);
             }}
             onBack={handleBackFromPreview}
           />
-        );
-      }
-    }
+        </motion.div>
+      )}
 
-    return (
-      <WelcomePage
-        sessions={customWorkspaceSummaries}
-        coursePackages={coursePackageOptions}
-        onOpenSession={handleOpenWorkspace}
-        onCreateCustomSession={handleCreateCustomWorkspace}
-        onStartPackageSession={handlePreviewPackage}
-        onOpenCreatorStudio={() => setCreatorStudioOpen(true)}
-      />
-    );
-  }
-
-  if (mainPhase === 'setup') {
-    return (
-      <motion.div
-        className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
-        variants={pageVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
-              <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
-            </div>
-            <motion.button
-              type="button"
-              onClick={handleBackToWelcome}
-              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
-              title="Back to sessions"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </motion.button>
-          </div>
-        </motion.header>
-
-        <motion.main
-          className="mt-4 flex min-h-[calc(100vh-7.5rem)] items-center justify-center"
-          variants={pageItemVariants}
+      {viewKey === 'welcome' && (
+        <motion.div
+          key="welcome"
+          initial={{ opacity: 0, y: pageTransitionY }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: pageTransitionExitY }}
+          transition={pageTransition}
         >
-          <div className="panel-surface w-full max-w-2xl px-6 py-8 text-center sm:px-8">
-            <p className="font-heading text-xl font-semibold text-gray-900">{activeCoursePackage.intakeTitle}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{activeCoursePackage.intakeDescription}</p>
+          <WelcomePage
+            sessions={customWorkspaceSummaries}
+            coursePackages={coursePackageOptions}
+            onOpenSession={handleOpenWorkspace}
+            onCreateCustomSession={handleCreateCustomWorkspace}
+            onStartPackageSession={handlePreviewPackage}
+            onOpenCreatorStudio={() => setCreatorStudioOpen(true)}
+          />
+        </motion.div>
+      )}
 
-            <div className="mt-5 rounded-xl border border-gray-200 bg-white/80 px-4 py-4 text-left">
-              <p className="text-base font-semibold text-gray-700">Creator Guidance</p>
-              <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{activeCoursePackage.creatorPrompt}</p>
-            </div>
+      {viewKey === 'setup' && (
+        <motion.div
+          key="setup"
+          initial={{ opacity: 0, y: pageTransitionY }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: pageTransitionExitY }}
+          transition={pageTransition}
+        >
+          <motion.div
+            className="min-h-screen px-3 pb-4 pt-3 text-[#0f172a] sm:px-4 lg:px-5"
+            variants={pageVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.header className="hero-shell rounded-[22px] px-4 py-2 sm:px-5" variants={pageItemVariants}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles className="h-4 w-4 shrink-0 text-[#0f172a]" />
+                  <p className="truncate text-sm font-semibold text-[#0f172a]">{activeCoursePackage.title}</p>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={handleBackToWelcome}
+                  whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[#64748b] transition hover:border-[#e2e8f0] hover:text-[#0f172a]"
+                  title="Back to sessions"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                </motion.button>
+              </div>
+            </motion.header>
 
-            <div className="mt-4 space-y-3 text-left">
-              {activeCoursePackage.intakeFields.map((field) => {
-                const currentValue = learnerIntake[field.id] ?? '';
-                return (
-                  <div key={field.id} className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
-                    <p className="text-base font-semibold text-gray-700">
-                      {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
-                    </p>
-                    <p className="mt-1 text-[13px] text-gray-600">{field.description}</p>
+            <motion.main
+              className="mt-4 flex min-h-[calc(100vh-7.5rem)] items-center justify-center"
+              variants={pageItemVariants}
+            >
+              <div className="panel-surface w-full max-w-2xl px-6 py-8 text-center sm:px-8">
+                <p className="font-heading text-xl font-semibold text-[#0f172a]">{activeCoursePackage.intakeTitle}</p>
+                <p className="mt-2 text-[15px] leading-relaxed text-[#1e293b]">{activeCoursePackage.intakeDescription}</p>
 
-                    {field.type === 'file' ? (
-                      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:text-blue-700">
-                        Upload {field.label}
-                        <input
-                          type="file"
-                          accept={field.accept}
-                          onChange={(event) => handleIntakeFileUpload(field.id, event)}
-                          className="hidden"
-                        />
-                      </label>
-                    ) : (
-                      <input
-                        type={field.type === 'url' ? 'url' : 'text'}
-                        value={currentValue}
-                        onChange={(event) => handleIntakeTextChange(field.id, event.target.value)}
-                        placeholder={field.placeholder}
-                        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-                      />
-                    )}
+                <div className="mt-5 rounded-[22px] border border-[#e2e8f0] bg-white/80 px-4 py-4 text-left">
+                  <p className="text-base font-semibold text-[#0f172a]">Creator Guidance</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-[#1e293b]">{activeCoursePackage.creatorPrompt}</p>
+                </div>
 
-                    <p className="mt-2 text-[13px] text-gray-600">
-                      {currentValue ? `Provided: ${currentValue}` : 'No input yet.'}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+                <div className="mt-4 space-y-3 text-left">
+                  {activeCoursePackage.intakeFields.map((field) => {
+                    const currentValue = learnerIntake[field.id] ?? '';
+                    return (
+                      <div key={field.id} className="rounded-[22px] border border-[#e2e8f0] bg-white/70 px-4 py-3">
+                        <p className="text-base font-semibold text-[#0f172a]">
+                          {field.label} {field.required ? <span className="text-[#dc2626]">*</span> : null}
+                        </p>
+                        <p className="mt-1 text-[13px] text-[#1e293b]">{field.description}</p>
 
-            <div className="mt-4 flex justify-center">
+                        {field.type === 'file' ? (
+                          <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm font-medium text-[#0f172a] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                            Upload {field.label}
+                            <input
+                              type="file"
+                              accept={field.accept}
+                              onChange={(event) => handleIntakeFileUpload(field.id, event)}
+                              className="hidden"
+                            />
+                          </label>
+                        ) : (
+                          <input
+                            type={field.type === 'url' ? 'url' : 'text'}
+                            value={currentValue}
+                            onChange={(event) => handleIntakeTextChange(field.id, event.target.value)}
+                            placeholder={field.placeholder}
+                            className="mt-3 w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a] outline-none transition focus:border-[#7c3aed] focus:ring-0"
+                          />
+                        )}
+
+                        <p className="mt-2 text-[13px] text-[#1e293b]">
+                          {currentValue ? `Provided: ${currentValue}` : 'No input yet.'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleFillSampleIntake}
+                    className="btn-ghost inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium"
+                  >
+                    Fill Sample Inputs
+                  </button>
+                </div>
+
+                <motion.button
+                  type="button"
+                  onClick={handleStartLearning}
+                  disabled={!isIntakeReady}
+                  whileHover={reducedMotion ? undefined : { y: -1 }}
+                  whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+                  transition={springFor(reducedMotion, 'snappy')}
+                  className="btn-cta mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
+                >
+                  Start Learning
+                </motion.button>
+                {!isIntakeReady ? (
+                  <p className="mt-2 text-[13px] text-[#1e293b]">Complete required fields to continue.</p>
+                ) : null}
+              </div>
+            </motion.main>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {viewKey === 'learning' && activeNode && activeSession && (
+        <motion.div
+          key="learning"
+          initial={{ opacity: 0, y: pageTransitionY }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: pageTransitionExitY }}
+          transition={pageTransition}
+        >
+          <motion.div
+            className="min-h-screen px-3 pb-4 pt-3 text-[#0f172a] sm:px-4 lg:px-5"
+            variants={pageVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.header className="hero-shell rounded-[22px] px-4 py-2 sm:px-5" variants={pageItemVariants}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles className="h-4 w-4 shrink-0 text-[#0f172a]" />
+                  <p className="truncate text-sm font-semibold text-[#0f172a]">{activeCoursePackage.title}</p>
+                  <span className="hidden text-xs text-[#64748b] md:inline">/</span>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.p
+                      key={activeSessionId}
+                      className="hidden truncate text-xs text-[#64748b] md:block"
+                      initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: reducedMotion ? 0 : -3 }}
+                      transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+                    >
+                      {activeNode.title}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {mainPhase === 'learning' && (
+                    <motion.button
+                      type="button"
+                      onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
+                      whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-black bg-[#f8fafc] text-[#0f172a]' : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#2563eb] hover:text-[#2563eb]'}`}
+                      title="Skill Tree"
+                    >
+                      <MapIcon className="h-3.5 w-3.5" />
+                    </motion.button>
+                  )}
+                  <motion.button
+                    type="button"
+                    onClick={handleBackToWelcome}
+                    whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[#64748b] transition hover:border-[#e2e8f0] hover:text-[#0f172a]"
+                    title="Back to sessions"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                  </motion.button>
+                </div>
+              </div>
+            </motion.header>
+
+            {(() => {
+              const showCanvas = canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0);
+              const dur = durationFor(reducedMotion, MOTION_DURATION.base);
+              const ease = MOTION_EASE.enter;
+              return (
+            <motion.main className="mt-3 flex h-[calc(100vh-5.5rem)] gap-3 overflow-hidden" variants={pageItemVariants}>
+              {/* Main chat column */}
+              <motion.div
+                animate={{ flexBasis: showCanvas ? '35%' : '100%', maxWidth: showCanvas ? '100%' : '48rem' }}
+                transition={{ duration: dur, ease }}
+                style={{ flexShrink: 0, flexGrow: 1 }}
+                className={`flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#e2e8f0] bg-white/90 backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
+              >
+                {/* Skill progress bar -- only show in learning phase */}
+                {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
+                  <SkillProgressBar
+                    skillNodes={mainSkillNodes}
+                    activeSkillNodeId={activeSkillNodeId}
+                    onSelectSkill={handleSelectSkillNode}
+                    onCompleteSkill={handleCompleteSkill}
+                  />
+                )}
+                {/* Chat */}
+                <div className="min-h-0 flex-1">
+                  <SessionChat
+                    key={activeSession.id}
+                    activeNode={activeNode}
+                    activeSession={activeSession}
+                    mainPhase={mainPhase}
+                    activeSkillNodeId={activeSkillNodeId}
+                    activeSkillStatus={activeSkillStatus}
+                    creatorCommands={activeCoursePackage.commands.map((command) => ({
+                      id: command.id,
+                      trigger: command.trigger,
+                      name: command.name,
+                      description: command.description,
+                      inputFields: command.inputFields,
+                    }))}
+                    packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
+                    planningQuickActions={planningQuickActions}
+                    onSendMessage={handleSendMessage}
+                    onCreateBranch={handleCreateBranch}
+                    isTyping={isTyping}
+                    richBlocks={visibleRichBlocks}
+                    canvasOpen={canvasOpen && canvasView === 'content'}
+                    onToggleCanvas={() => {
+                      if (canvasOpen && canvasView === 'content') {
+                        setCanvasOpen(false);
+                      } else {
+                        setCanvasView('content');
+                        setCanvasOpen(true);
+                      }
+                    }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Canvas panel -- always mounted, animates width */}
+              <motion.div
+                animate={{
+                  flexBasis: showCanvas ? '65%' : '0%',
+                  opacity: showCanvas ? 1 : 0,
+                }}
+                transition={{ duration: dur, ease }}
+                style={{ flexShrink: 0, overflow: 'hidden' }}
+                className="hidden md:block"
+              >
+                {(canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
+                  <CanvasSlideOver
+                    view={canvasView}
+                    blocks={visibleRichBlocks}
+                    onClose={() => setCanvasOpen(false)}
+                    onSwitchView={setCanvasView}
+                    skillTreeProps={{
+                      nodes,
+                      activeSessionId,
+                      skillNodes: mainSkillNodes,
+                      mainPhase,
+                      planningState: mainSession?.planning ?? null,
+                      onSelectSession: activateSession,
+                      onSelectSkillNode: handleSelectSkillNode,
+                    }}
+                  />
+                )}
+              </motion.div>
+            </motion.main>
+              );
+            })()}
+
+            {/* ── Global Agent Inbox ── */}
+            <div className="fixed bottom-24 right-24 z-50">
+              <AnimatePresence>
+                {inboxOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+                    className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-[22px] border border-[#e2e8f0] bg-white"
+                  >
+                    <div className="border-b border-[#f1f5f9] px-4 py-3">
+                      <p className="text-sm font-semibold text-[#0f172a]">Suggestions</p>
+                      <p className="text-xs text-[#64748b]">Recommended next steps for your learning</p>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-[#f1f5f9]">
+                      {globalInbox.length === 0 ? (
+                        <p className="px-4 py-8 text-center text-sm text-[#64748b]">No suggestions right now</p>
+                      ) : (
+                        globalInbox.map((item) => {
+                          let icon: React.ReactNode;
+                          const iconBgClass = 'bg-[#f8fafc] text-[#0f172a]';
+                          switch (item.action) {
+                            case 'start-skill':
+                              icon = <BookOpen className="h-3.5 w-3.5" />;
+                              break;
+                            case 'practice':
+                              icon = <Zap className="h-3.5 w-3.5" />;
+                              break;
+                            case 'explore-topic':
+                              icon = <Sparkles className="h-3.5 w-3.5" />;
+                              break;
+                            case 'review':
+                              icon = <RotateCcw className="h-3.5 w-3.5" />;
+                              break;
+                            case 'export-progress':
+                              icon = <FileText className="h-3.5 w-3.5" />;
+                              break;
+                            default:
+                              icon = <Circle className="h-3.5 w-3.5" />;
+                              break;
+                          }
+                          return (
+                          <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-[#f1f5f9]">
+                            <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}>
+                              {icon}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-[#0f172a]">{item.title}</p>
+                              <p className="mt-0.5 text-xs text-[#64748b]">{item.description}</p>
+                            </div>
+                            <div className="flex shrink-0 gap-1 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleInboxAccept(item.id)}
+                                className="rounded-md p-1 text-[#0f172a] transition hover:bg-[#f1f5f9]"
+                                title="Accept"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleInboxDismiss(item.id)}
+                                className="rounded-md p-1 text-[#64748b] transition hover:bg-[#f1f5f9]"
+                                title="Dismiss"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <button
                 type="button"
-                onClick={handleFillSampleIntake}
-                className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
+                onClick={() => setInboxOpen((prev) => !prev)}
+                className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[#0f172a] text-white transition hover:opacity-90 active:scale-95"
               >
-                Fill Sample Inputs
+                <Inbox className="h-5 w-5" />
+                {globalInbox.length > 0 && (
+                  <span className={`absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white${inboxPulse ? ' animate-inbox-pulse' : ''}`}>
+                    {globalInbox.length}
+                  </span>
+                )}
               </button>
             </div>
-
-            <motion.button
-              type="button"
-              onClick={handleStartLearning}
-              disabled={!isIntakeReady}
-              whileHover={reducedMotion ? undefined : { y: -1 }}
-              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-              transition={springFor(reducedMotion, 'snappy')}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
-            >
-              Start Learning
-            </motion.button>
-            {!isIntakeReady ? (
-              <p className="mt-2 text-[13px] text-gray-600">Complete required fields to continue.</p>
-            ) : null}
-          </div>
-        </motion.main>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      className="min-h-screen px-3 pb-4 pt-3 text-gray-900 sm:px-4 lg:px-5"
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.header className="hero-shell rounded-2xl px-4 py-2 sm:px-5" variants={pageItemVariants}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
-            <p className="truncate text-sm font-semibold text-gray-900">{activeCoursePackage.title}</p>
-            <span className="hidden text-xs text-gray-400 md:inline">/</span>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={activeSessionId}
-                className="hidden truncate text-xs text-gray-500 md:block"
-                initial={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: reducedMotion ? 0 : -3 }}
-                transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-              >
-                {activeNode.title}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {mainPhase === 'learning' && (
-              <motion.button
-                type="button"
-                onClick={() => { setCanvasView('skill-tree'); setCanvasOpen((prev) => canvasView === 'skill-tree' ? !prev : true); }}
-                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${canvasOpen && canvasView === 'skill-tree' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-500 hover:border-blue-200 hover:text-blue-600'}`}
-                title="Skill Tree"
-              >
-                <MapIcon className="h-3.5 w-3.5" />
-              </motion.button>
-            )}
-            <motion.button
-              type="button"
-              onClick={handleBackToWelcome}
-              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
-              title="Back to sessions"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </motion.button>
-          </div>
-        </div>
-      </motion.header>
-
-      {(() => {
-        const showCanvas = canvasOpen && (canvasView === 'skill-tree' || visibleRichBlocks.length > 0);
-        const dur = durationFor(reducedMotion, MOTION_DURATION.base);
-        const ease = MOTION_EASE.enter;
-        return (
-      <motion.main className="mt-3 flex h-[calc(100vh-5.5rem)] gap-3 overflow-hidden" variants={pageItemVariants}>
-        {/* Main chat column */}
-        <motion.div
-          animate={{ flexBasis: showCanvas ? '35%' : '100%', maxWidth: showCanvas ? '100%' : '48rem' }}
-          transition={{ duration: dur, ease }}
-          style={{ flexShrink: 0, flexGrow: 1 }}
-          className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm ${showCanvas ? '' : 'mx-auto'}`}
-        >
-          {/* Skill progress bar — only show in learning phase */}
-          {mainPhase === 'learning' && mainSkillNodes.length > 0 && (
-            <SkillProgressBar
-              skillNodes={mainSkillNodes}
-              activeSkillNodeId={activeSkillNodeId}
-              onSelectSkill={handleSelectSkillNode}
-              onCompleteSkill={handleCompleteSkill}
-            />
-          )}
-          {/* Chat */}
-          <div className="min-h-0 flex-1">
-            <SessionChat
-              key={activeSession.id}
-              activeNode={activeNode}
-              activeSession={activeSession}
-              mainPhase={mainPhase}
-              activeSkillNodeId={activeSkillNodeId}
-              activeSkillStatus={activeSkillStatus}
-              creatorCommands={activeCoursePackage.commands.map((command) => ({
-                id: command.id,
-                trigger: command.trigger,
-                name: command.name,
-                description: command.description,
-                inputFields: command.inputFields,
-              }))}
-              packageSuggestedActions={activeCoursePackage.suggestedActions ?? []}
-              planningQuickActions={planningQuickActions}
-              onSendMessage={handleSendMessage}
-              onCreateBranch={handleCreateBranch}
-              richBlocks={visibleRichBlocks}
-              canvasOpen={canvasOpen && canvasView === 'content'}
-              onToggleCanvas={() => {
-                if (canvasOpen && canvasView === 'content') {
-                  setCanvasOpen(false);
-                } else {
-                  setCanvasView('content');
-                  setCanvasOpen(true);
-                }
-              }}
-            />
-          </div>
+          </motion.div>
         </motion.div>
-
-        {/* Canvas panel — always mounted, animates width */}
-        <motion.div
-          animate={{
-            flexBasis: showCanvas ? '65%' : '0%',
-            opacity: showCanvas ? 1 : 0,
-          }}
-          transition={{ duration: dur, ease }}
-          style={{ flexShrink: 0, overflow: 'hidden' }}
-          className="hidden lg:block"
-        >
-          {(canvasView === 'skill-tree' || visibleRichBlocks.length > 0) && (
-            <CanvasSlideOver
-              view={canvasView}
-              blocks={visibleRichBlocks}
-              onClose={() => setCanvasOpen(false)}
-              onSwitchView={setCanvasView}
-              skillTreeProps={{
-                nodes,
-                activeSessionId,
-                skillNodes: mainSkillNodes,
-                mainPhase,
-                planningState: mainSession?.planning ?? null,
-                onSelectSession: activateSession,
-                onSelectSkillNode: handleSelectSkillNode,
-              }}
-            />
-          )}
-        </motion.div>
-      </motion.main>
-        );
-      })()}
-
-      {/* ── Global Agent Inbox ── */}
-      <div className="fixed bottom-24 right-24 z-50">
-        <AnimatePresence>
-          {inboxOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-              className="absolute bottom-14 right-0 w-80 max-h-[28rem] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
-            >
-              <div className="border-b border-gray-100 px-4 py-3">
-                <p className="text-sm font-semibold text-gray-800">Suggestions</p>
-                <p className="text-xs text-gray-500">Recommended next steps for your learning</p>
-              </div>
-              <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                {globalInbox.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-gray-400">No suggestions right now</p>
-                ) : (
-                  globalInbox.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-gray-50/60">
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                        <Sparkles className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-800">{item.title}</p>
-                        <p className="mt-0.5 text-xs text-gray-500">{item.description}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-1 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleInboxAccept(item.id)}
-                          className="rounded-md p-1 text-blue-600 transition hover:bg-blue-50"
-                          title="Accept"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleInboxDismiss(item.id)}
-                          className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100"
-                          title="Dismiss"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <button
-          type="button"
-          onClick={() => setInboxOpen((prev) => !prev)}
-          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700 active:scale-95"
-        >
-          <Inbox className="h-5 w-5" />
-          {globalInbox.length > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
-              {globalInbox.length}
-            </span>
-          )}
-        </button>
-      </div>
-    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

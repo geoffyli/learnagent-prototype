@@ -20,7 +20,7 @@ function StarRow({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' }) 
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
-          className={`${cls} ${i < Math.round(score) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`}
+          className={`${cls} ${i < Math.round(score) ? 'fill-white text-white' : 'fill-[#64748b]/30 text-[#64748b]/30'}`}
         />
       ))}
     </div>
@@ -35,25 +35,25 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 text-gray-900"
+      className="min-h-screen bg-white text-gray-900"
       variants={staggerContainer(rm, 0.07, 0.02)}
       initial="hidden"
       animate="visible"
     >
       {/* Top nav */}
       <motion.header
-        className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur-sm"
+        className="sticky top-0 z-10 border-b border-[#e2e8f0] bg-white px-4 py-3"
         variants={fadeSlideY(rm, 8, MOTION_DURATION.slow)}
       >
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <p className="font-heading text-xl font-semibold tracking-tight text-gray-900">Knovia</p>
+          <p className="font-heading text-xl font-normal tracking-[-0.32px] text-[#0f172a]">Knovia</p>
           <motion.button
             type="button"
             onClick={onBack}
             whileHover={rm ? undefined : { y: -1 }}
             whileTap={rm ? undefined : { scale: 0.98 }}
             transition={springFor(rm, 'snappy')}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-blue-300 hover:text-blue-700"
+            className="btn-ghost inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-sm font-normal"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back
@@ -63,16 +63,16 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
       {/* Hero banner */}
       <motion.div
-        className="bg-gradient-to-br from-blue-600 to-blue-700 px-4 py-10"
+        className="bg-[#0f172a] px-4 py-10"
         variants={fadeSlideY(rm, 12, MOTION_DURATION.slow)}
       >
         <div className="mx-auto max-w-2xl">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-blue-200">Course</p>
-          <h1 className="text-3xl font-bold text-white">{pkg.title}</h1>
-          <p className="mt-2 text-base text-blue-100">{pkg.subtitle}</p>
+          <p className="mb-2 label-code">Course</p>
+          <h1 className="font-heading text-[48px] font-normal tracking-[-0.48px] text-white leading-[1.2]">{pkg.title}</h1>
+          <p className="mt-2 text-base text-[#64748b]">{pkg.subtitle}</p>
 
           {/* Stats row */}
-          <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-blue-100">
+          <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-[#64748b]">
             <span className="flex items-center gap-1.5">
               <Users className="h-4 w-4 opacity-80" />
               {community.learnerCount.toLocaleString()} learners
@@ -91,7 +91,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
           <div className="mt-3 flex items-center gap-2">
             <StarRow score={community.rating.score} />
             <span className="text-sm font-semibold text-white">{community.rating.score}</span>
-            <span className="text-sm text-blue-200">({community.rating.count.toLocaleString()} reviews)</span>
+            <span className="text-sm text-[#64748b]">({community.rating.count.toLocaleString()} reviews)</span>
           </div>
         </div>
       </motion.div>
@@ -100,7 +100,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
         {/* CTA card */}
         <motion.div
-          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+          className="rounded-[22px] border border-[#f1f5f9] bg-white p-6"
           variants={fadeSlideY(rm, 10, MOTION_DURATION.slow)}
         >
           <div className="flex items-center justify-between gap-4">
@@ -114,7 +114,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
               whileHover={rm ? undefined : { y: -1 }}
               whileTap={rm ? undefined : { scale: 0.98 }}
               transition={springFor(rm, 'snappy')}
-              className="shrink-0 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
+              className="shrink-0 btn-cta px-8 py-3 text-sm font-medium"
             >
               Start Course
             </motion.button>
@@ -123,16 +123,16 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
         {/* Section — Skill path */}
         <motion.div
-          className="rounded-2xl border border-gray-200 bg-white shadow-sm"
+          className="rounded-[22px] border border-[#f1f5f9] bg-white"
           variants={fadeSlideY(rm, 10, MOTION_DURATION.slow)}
         >
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">What you will learn</h2>
+          <div className="border-b border-[#f1f5f9] px-5 py-4">
+            <h2 className="label-code">What you will learn</h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#f1f5f9]">
             {pkg.skillNodes.map((node, i) => (
               <div key={node.id} className="flex items-start gap-4 px-5 py-3.5">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f1f5f9] text-xs font-bold text-[#0f172a]">
                   {i + 1}
                 </span>
                 <div className="min-w-0">
@@ -149,14 +149,14 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
         {/* Section — Creator */}
         <motion.div
-          className="rounded-2xl border border-gray-200 bg-white shadow-sm"
+          className="rounded-[22px] border border-[#f1f5f9] bg-white"
           variants={fadeSlideY(rm, 10, MOTION_DURATION.slow)}
         >
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">About the Creator</h2>
+          <div className="border-b border-[#f1f5f9] px-5 py-4">
+            <h2 className="label-code">About the Creator</h2>
           </div>
           <div className="flex items-start gap-4 px-5 py-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0f172a] text-sm font-bold text-white">
               {community.creator.initials}
             </div>
             <div className="min-w-0">
@@ -168,11 +168,11 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
 
         {/* Section — Reviews */}
         <motion.div
-          className="rounded-2xl border border-gray-200 bg-white shadow-sm"
+          className="rounded-[22px] border border-[#f1f5f9] bg-white"
           variants={fadeSlideY(rm, 10, MOTION_DURATION.slow)}
         >
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
+            <h2 className="label-code">
               Learner Reviews
             </h2>
             <div className="flex items-center gap-1.5">
@@ -182,7 +182,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
             </div>
           </div>
           <motion.div
-            className="divide-y divide-gray-100"
+            className="divide-y divide-[#f1f5f9]"
             variants={staggerContainer(rm, 0.06, 0.04)}
             initial="hidden"
             animate="visible"
@@ -222,7 +222,7 @@ export default function CourseDetailPage({ pkg, community, onStartCourse, onBack
             whileHover={rm ? undefined : { y: -1 }}
             whileTap={rm ? undefined : { scale: 0.98 }}
             transition={springFor(rm, 'snappy')}
-            className="w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
+            className="w-full btn-cta py-3.5 text-sm font-medium"
           >
             Start Course
           </motion.button>

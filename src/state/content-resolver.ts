@@ -18,6 +18,7 @@ export interface RichContentResult {
   text: string;
   rich?: ContentBlock[];
   source: 'explicit' | 'intent' | 'none';
+  matchedLabel?: string;
 }
 
 interface IntentRule {
@@ -102,7 +103,7 @@ const INTENT_RULES: IntentRule[] = [
     reason: 'interview strategy intent',
     baseScore: 0,
   },
-  /* SAT intent rules — Digital SAT 2024+ (baseScore:1 so SAT rules win keyword ties over Data Analyst rules) */
+  /* SAT intent rules — Digital SAT (baseScore:1 so SAT rules win keyword ties over Data Analyst rules) */
   {
     packId: 'sat-vocab-flashcards',
     keywords: ['flashcard', 'strategy card', 'tutor trick', 'purpose vs topic', 'grammar trap', 'desmos', 'calculator strategy'],
@@ -141,7 +142,7 @@ const INTENT_RULES: IntentRule[] = [
   },
   {
     packId: 'sat-score-progress-metrics',
-    keywords: ['score', 'progress', 'improvement', 'target', 'domain accuracy', 'where am i', 'opportunity', 'diagnosis dashboard'],
+    keywords: ['score', 'progress', 'improvement', 'target', 'domain accuracy', 'where am i', 'opportunity', 'diagnosis dashboard', 'score diagnosis', 'diagnosis'],
     reason: 'SAT score diagnosis intent',
     baseScore: 1,
   },
@@ -227,6 +228,7 @@ export function resolveRichContent(options: ResolveRichContentOptions): RichCont
       source: 'explicit',
       text: `Loaded ${labelForPack(explicitId as ContentPackId)}.`,
       rich: explicitPack,
+      matchedLabel: CONTENT_PACK_LABELS[explicitId as ContentPackId],
     };
   }
 
@@ -236,6 +238,7 @@ export function resolveRichContent(options: ResolveRichContentOptions): RichCont
       source: 'intent',
       text: `Generated ${labelForPack(intent.packId)} based on your request.`,
       rich: CONTENT_PACKS[intent.packId],
+      matchedLabel: CONTENT_PACK_LABELS[intent.packId],
     };
   }
 
@@ -246,6 +249,7 @@ export function resolveRichContent(options: ResolveRichContentOptions): RichCont
         source: 'intent',
         text: `Here is ${labelForPack(topicPack)} for ${options.topicTitle}.`,
         rich: CONTENT_PACKS[topicPack],
+        matchedLabel: CONTENT_PACK_LABELS[topicPack],
       };
     }
   }

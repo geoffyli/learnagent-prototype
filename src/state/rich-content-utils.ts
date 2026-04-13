@@ -1,4 +1,4 @@
-import type { ContentBlock } from '../types/content-blocks';
+import type { ContentBlock, FlashcardItem } from '../types/content-blocks';
 
 export type LegacyFlashcardsBlock = {
   type: 'flashcards';
@@ -8,11 +8,17 @@ export type LegacyFlashcardsBlock = {
 
 export type LegacyRichBlock = ContentBlock | LegacyFlashcardsBlock;
 
+function normalizeCards(cards: unknown[]): FlashcardItem[] {
+  return cards.map((c: any) => {
+    if (c.kind) return c as FlashcardItem;
+    return { id: c.id, kind: 'flip' as const, question: c.question, answer: c.answer };
+  });
+}
+
 export function normalizeRichBlock(block: LegacyRichBlock): ContentBlock | null {
   switch (block.type) {
     case 'code':
     case 'comparison-table':
-    case 'flashcard-deck':
     case 'concept-map':
     case 'timeline':
     case 'checklist':
@@ -20,6 +26,10 @@ export function normalizeRichBlock(block: LegacyRichBlock): ContentBlock | null 
     case 'metric-strip':
     case 'debug-trace':
       return block;
+    case 'flashcard-deck': {
+      if (!Array.isArray(block.cards) || block.cards.length === 0) return null;
+      return { ...block, cards: normalizeCards(block.cards) };
+    }
     case 'flashcards': {
       if (!Array.isArray(block.cards) || block.cards.length === 0) {
         return null;
@@ -27,7 +37,7 @@ export function normalizeRichBlock(block: LegacyRichBlock): ContentBlock | null 
       return {
         type: 'flashcard-deck',
         topic: block.topic ?? 'Practice',
-        cards: block.cards,
+        cards: normalizeCards(block.cards),
       };
     }
     default:

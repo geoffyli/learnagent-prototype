@@ -1,22 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-a: #eef2f9;
-  --bg-b: #f8faff;
-  --ink: #111827;
-  --line: #d1d5db;
-  --panel: rgba(255, 255, 255, 0.9);
+  --bg: #ffffff;
+  --ink: #0f172a;
+  --ink-secondary: #1e293b;
+  --ink-muted: #64748b;
+  --ink-light: #94a3b8;
+  --line: #e2e8f0;
+  --line-light: #f1f5f9;
+  --surface: #f8fafc;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent: #7c3aed;
+  --accent-light: #ede9fe;
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
   --motion-micro: 160ms;
   --motion-fast: 220ms;
   --motion-base: 300ms;
   --motion-slow: 420ms;
   --motion-ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
-  font-family: 'Manrope', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -31,94 +41,137 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background:
-    radial-gradient(900px 360px at 0% -10%, #dde8f2 0%, transparent 72%),
-    linear-gradient(132deg, var(--bg-a), var(--bg-b));
+  background: var(--surface);
 }
 
 #root {
   min-height: 100vh;
 }
 
+/* Display heading — Space Grotesk */
 .font-heading {
-  font-family: 'Sora', 'Manrope', 'Segoe UI', sans-serif;
+  font-family: 'Space Grotesk', 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* Monospace label utility */
+.label-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.28px;
+  color: var(--ink-muted);
+}
+
+/* Header shell — enterprise border, no shadow */
 .hero-shell {
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: linear-gradient(138deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
-  box-shadow:
-    0 8px 20px rgba(17, 24, 39, 0.05),
-    0 1px 4px rgba(17, 24, 39, 0.05);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 22px;
 }
 
-/* Readability tuning layer: increase text/background contrast in light mode. */
-.text-gray-500 {
-  color: #4b5563 !important;
-}
-
-.text-gray-400 {
-  color: #6b7280 !important;
-}
-
-.text-gray-300 {
-  color: #6b7280 !important;
-}
-
-.border-white\/50,
-.border-white\/70 {
-  border-color: rgba(156, 163, 175, 0.42) !important;
-}
-
-.bg-white\/55 {
-  background-color: rgba(255, 255, 255, 0.88) !important;
-}
-
-.bg-white\/70 {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-}
-
-.bg-white\/80 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-}
-
+/* Panel surface — clean border containment */
 .panel-surface {
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 1.25rem;
-  background: var(--panel);
+  border: 1px solid var(--line-light);
+  border-radius: 22px;
+  background: var(--bg);
   min-width: 0;
-  box-shadow:
-    0 6px 18px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
 }
 
+/* Session node cards — white, soft border, 22px radius */
 .session-node-card {
-  border-radius: 0.95rem;
-  border: 1px solid rgba(209, 213, 219, 0.9);
-  background: rgba(255, 255, 255, 0.96);
-  padding: 0.72rem;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0.85rem;
   transition:
-    transform var(--motion-fast) var(--motion-ease-enter),
-    box-shadow var(--motion-fast) var(--motion-ease-enter),
-    border-color var(--motion-fast) var(--motion-ease-enter);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    border-color var(--motion-fast) var(--motion-ease-enter),
+    box-shadow var(--motion-fast) var(--motion-ease-enter);
 }
 
 .session-node-card:hover {
-  transform: translateY(-1px);
-  border-color: #3b82f6;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.17);
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
 .session-node-card-active {
-  border-color: #2563eb;
-  box-shadow:
-    0 10px 24px rgba(37, 99, 235, 0.22),
-    0 0 0 2px rgba(37, 99, 235, 0.16);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
+/* Node card subtle tinted variants */
+.session-node-card-topic {
+  background: linear-gradient(135deg, #ede9fe, #ffffff);
+  border-color: #c4b5fd;
+}
+.session-node-card-topic:hover {
+  border-color: #7c3aed;
+}
+
+.session-node-card-ask {
+  background: linear-gradient(135deg, #e0f2fe, #ffffff);
+  border-color: #7dd3fc;
+}
+.session-node-card-ask:hover {
+  border-color: #0284c7;
+}
+
+.session-node-card-explain {
+  background: linear-gradient(135deg, #fef3c7, #ffffff);
+  border-color: #fcd34d;
+}
+.session-node-card-explain:hover {
+  border-color: #d97706;
+}
+
+.session-node-card-practice {
+  background: linear-gradient(135deg, #d1fae5, #ffffff);
+  border-color: #6ee7b7;
+}
+.session-node-card-practice:hover {
+  border-color: #059669;
+}
+
+/* Ghost button — transparent, hover to primary blue */
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-ease-enter);
+}
+
+.btn-ghost:hover {
+  color: var(--primary);
+}
+
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Primary solid CTA */
+.btn-cta {
+  background: var(--primary);
+  color: var(--bg);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--motion-ease-enter);
+}
+
+.btn-cta:hover {
+  background: var(--primary-hover);
+}
+
+.btn-cta:disabled {
+  background: var(--line);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+
+/* Will-change hints */
 .will-change-transform-opacity {
   will-change: transform, opacity;
 }
@@ -127,6 +180,7 @@ body {
   will-change: opacity;
 }
 
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -138,15 +192,10 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: #c0c8d4;
+  background: var(--line);
 }
 
-@media (max-width: 1280px) {
-  .panel-surface {
-    backdrop-filter: blur(7px);
-  }
-}
-
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

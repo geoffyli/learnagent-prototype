@@ -14,7 +14,7 @@ const sampleBlocks: ContentBlock[] = [
   {
     type: 'flashcard-deck',
     topic: 'Hooks',
-    cards: [{ id: 'c1', question: 'Q', answer: 'A' }],
+    cards: [{ id: 'c1', kind: 'flip', question: 'Q', answer: 'A' }],
   },
   {
     type: 'concept-map',

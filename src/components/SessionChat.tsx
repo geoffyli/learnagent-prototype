@@ -42,6 +42,7 @@ interface SessionChatProps {
   canvasOpen?: boolean;
   onToggleCanvas?: () => void;
   planningQuickActions?: Array<{ label: string; prompt: string }>;
+  isTyping?: boolean;
 }
 
 interface SelectionPopover {
@@ -132,12 +133,12 @@ function getQuickActions(
 
 function messageStyle(message: ChatMessage): string {
   if (message.role === 'assistant') {
-    return 'bg-white text-gray-800 border border-gray-200';
+    return 'bg-white text-[#0f172a] border border-[#f1f5f9]';
   }
   if (message.role === 'system') {
-    return 'bg-gray-50 text-gray-400 border border-gray-100 text-xs';
+    return 'bg-[#f8fafc] text-[#64748b] border border-[#e2e8f0] text-xs';
   }
-  return 'bg-blue-600 text-white border border-blue-500';
+  return 'bg-[#0f172a] text-white';
 }
 
 function parseCommandExecutionCard(content: string) {
@@ -201,6 +202,7 @@ export default function SessionChat({
   canvasOpen,
   onToggleCanvas,
   planningQuickActions = [],
+  isTyping = false,
 }: SessionChatProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [inputsBySession, setInputsBySession] = useState<Record<string, string>>({});
@@ -380,7 +382,7 @@ export default function SessionChat({
 
   return (
     <div className="panel-surface relative flex h-full flex-col overflow-hidden">
-      <motion.div className="border-b border-white/50 px-4 py-3" variants={fadeSlideY(reducedMotion, 6)}>
+      <motion.div className="border-b border-[#e2e8f0] px-4 py-3" variants={fadeSlideY(reducedMotion, 6)}>
         <div className="flex items-center justify-between">
           <p className="line-clamp-1 font-heading text-base font-semibold text-gray-900">
             {activeNode.title}
@@ -400,6 +402,7 @@ export default function SessionChat({
           <AnimatePresence initial={false}>
             {activeSession.messages.map((message) => {
               const isUser = message.role === 'user';
+              const isAssistant = message.role === 'assistant';
               return (
                 <motion.div
                   key={message.id}
@@ -408,15 +411,21 @@ export default function SessionChat({
                     opacity: 0,
                     x: reducedMotion ? 0 : isUser ? 12 : -12,
                     y: reducedMotion ? 0 : 4,
+                    filter: reducedMotion || isUser ? 'blur(0px)' : 'blur(2px)',
                   }}
-                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  animate={{ opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, x: reducedMotion ? 0 : isUser ? 6 : -6 }}
                   transition={tweenFor(reducedMotion, MOTION_DURATION.base)}
-                  className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${isAssistant ? 'gap-2' : ''}`}
                 >
+                  {isAssistant && (
+                    <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0f172a] text-[10px] font-bold text-white">
+                      K
+                    </div>
+                  )}
                   <div
                     data-selectable={message.role === 'assistant' || message.role === 'system'}
-                    className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${messageStyle(message)}`}
+                    className={`max-w-[80%] rounded-[22px] px-3.5 py-2.5 text-sm leading-relaxed ${messageStyle(message)}`}
                   >
                     {(() => {
                       const commandCard = message.role === 'assistant'
@@ -448,6 +457,27 @@ export default function SessionChat({
           </AnimatePresence>
         </div>
 
+        <AnimatePresence>
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -4 }}
+              transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
+              className="flex items-center gap-2"
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0f172a] text-[10px] font-bold text-white">
+                K
+              </div>
+              <div className="flex items-center gap-1 rounded-xl border border-[#f1f5f9] bg-white px-3.5 py-2.5">
+                <span className="animate-typing-dot h-1.5 w-1.5 rounded-full bg-[#94a3b8]" />
+                <span className="animate-typing-dot h-1.5 w-1.5 rounded-full bg-[#94a3b8]" style={{ animationDelay: '0.2s' }} />
+                <span className="animate-typing-dot h-1.5 w-1.5 rounded-full bg-[#94a3b8]" style={{ animationDelay: '0.4s' }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {richBlocks && richBlocks.length > 0 && onToggleCanvas && (
           <motion.div
             initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
@@ -458,7 +488,7 @@ export default function SessionChat({
             <button
               type="button"
               onClick={onToggleCanvas}
-              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${canvasOpen ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-blue-300'}`}
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${canvasOpen ? 'border-[#2563eb] bg-white' : 'border-[#f1f5f9] bg-[#f8fafc] hover:border-[#2563eb]'}`}
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-gray-300" />
               <p className="min-w-0 flex-1 truncate text-xs text-gray-400">
@@ -473,7 +503,7 @@ export default function SessionChat({
         <AnimatePresence>
           {selectionPopover && (
             <motion.div
-              className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+              className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-[22px] border border-[#e2e8f0] bg-white p-2"
               style={{ left: selectionPopover.x, top: selectionPopover.y }}
               initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.96, y: reducedMotion ? 0 : 4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -490,7 +520,7 @@ export default function SessionChat({
                   clearNativeSelection();
                 }}
                 whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                className="rounded-full bg-[#0f172a] px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90"
               >
                 Explore This
               </motion.button>
@@ -501,7 +531,7 @@ export default function SessionChat({
         <AnimatePresence>
           {!selectionPopover && selectionText && (
             <motion.div
-              className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-gray-200 bg-white/95 p-2 shadow-lg backdrop-blur-sm"
+              className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-[22px] border border-[#e2e8f0] bg-white/95 p-2 backdrop-blur-sm"
               initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
@@ -516,7 +546,7 @@ export default function SessionChat({
                   onCreateBranch('ask', selectionText);
                   clearNativeSelection();
                 }}
-                className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                className="rounded-full bg-[#0f172a] px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90"
               >
                 Explore This
               </button>
@@ -527,7 +557,7 @@ export default function SessionChat({
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-white/50 bg-white/55 px-4 py-4">
+      <div className="border-t border-[#e2e8f0] bg-white px-4 py-4">
         {quickActions.length > 0 && (
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -546,7 +576,7 @@ export default function SessionChat({
                   variants={fadeSlideY(reducedMotion, 6, MOTION_DURATION.fast)}
                   whileHover={reducedMotion ? undefined : { y: -1 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:border-blue-300 hover:text-blue-600"
+                    className="rounded-full bg-transparent text-[#0f172a] hover:text-[#2563eb] px-3 py-1.5 text-sm transition-colors"
                   >
                   {action.label}
                 </motion.button>
@@ -557,7 +587,7 @@ export default function SessionChat({
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <WandSparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <WandSparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
             <input
               value={input}
               onChange={(event) =>
@@ -576,7 +606,7 @@ export default function SessionChat({
                   submitInput(input);
                 }
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-[22px] border border-[#e2e8f0] bg-white py-3 pl-9 pr-3 text-sm text-gray-800 outline-none transition focus:border-[#7c3aed] focus:ring-0 focus:outline-none"
               placeholder="Ask a question..."
             />
             <AnimatePresence>
@@ -586,7 +616,7 @@ export default function SessionChat({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: reducedMotion ? 0 : 4 }}
                   transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
-                  className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+                  className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 rounded-[22px] border border-[#e2e8f0] bg-white p-2"
                 >
                   {filteredCommands.length === 0 ? (
                     <p className="px-2 py-1 text-xs text-gray-500">No commands match this prefix.</p>
@@ -597,7 +627,7 @@ export default function SessionChat({
                           key={command.id}
                           type="button"
                           onClick={() => openCommandDialog(command.id)}
-                          className="w-full rounded-lg border border-transparent px-2 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                          className="w-full rounded-lg border border-transparent px-2 py-2 text-left transition hover:border-[#2563eb] hover:bg-[#f1f5f9]"
                         >
                           <p className="text-sm font-medium text-gray-900">{command.trigger} · {command.name}</p>
                           <p className="text-xs text-gray-600">{command.description}</p>
@@ -614,7 +644,7 @@ export default function SessionChat({
             onClick={() => {
               setInputsBySession((prev) => ({ ...prev, [activeSession.id]: '/' }));
             }}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition hover:border-blue-300 hover:text-blue-700"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] text-[#64748b] transition hover:border-[#2563eb] hover:text-[#2563eb]"
             title="Open commands"
           >
             <span className="font-mono text-sm font-bold">/</span>
@@ -624,7 +654,7 @@ export default function SessionChat({
             onClick={() => submitInput(input)}
             whileTap={reducedMotion ? undefined : { scale: 0.96 }}
             transition={springFor(reducedMotion, 'snappy')}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-700"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f172a] text-white transition hover:opacity-90"
           >
             <SendHorizontal className="h-4 w-4" />
           </motion.button>
@@ -634,14 +664,14 @@ export default function SessionChat({
       <AnimatePresence>
         {commandDialog && activeDialogCommand && (
           <motion.div
-            className="absolute inset-0 z-40 flex items-center justify-center bg-gray-900/30 p-4"
+            className="absolute inset-0 z-40 flex items-center justify-center bg-[#0f172a]/20 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={tweenFor(reducedMotion, MOTION_DURATION.fast)}
           >
             <motion.div
-              className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-xl"
+              className="w-full max-w-md rounded-[22px] border border-[#e2e8f0] bg-white p-4"
               initial={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
@@ -673,7 +703,7 @@ export default function SessionChat({
                           };
                         })}
                         placeholder={field.placeholder}
-                        className="mt-1 h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none"
+                        className="mt-1 h-10 w-full rounded-comfortable border border-[#e2e8f0] bg-white px-3 text-sm text-gray-800 outline-none"
                       />
                     </div>
                   ))
@@ -684,14 +714,14 @@ export default function SessionChat({
                 <button
                   type="button"
                   onClick={() => setCommandDialog(null)}
-                  className="inline-flex min-h-10 items-center rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700"
+                  className="btn-ghost inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-gray-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={runCommand}
-                  className="inline-flex min-h-10 items-center rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white"
+                  className="inline-flex min-h-10 items-center rounded-full bg-[#0f172a] px-3 text-sm font-medium text-white"
                 >
                   Run Command
                 </button>

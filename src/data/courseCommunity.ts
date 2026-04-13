@@ -38,7 +38,7 @@ export const COURSE_COMMUNITY: Record<string, CourseCommunityData> = {
         authorInitials: 'RW',
         authorName: 'Ryan W.',
         daysAgo: '2 weeks ago',
-        text: 'The case simulation felt like a real interview. I got challenged on my assumptions and had to defend my metric choices — that pressure is exactly what you need to prepare.',
+        text: 'The case simulation felt like a real interview. I got challenged on my assumptions and had to defend my metric choices — that pressure is exactly the preparation you need.',
       },
       {
         id: 'c5',
